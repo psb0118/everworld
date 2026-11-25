@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EVERWORLD — 작은 문명의 시작</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101b19;color:#edf4e9;font:14px system-ui,sans-serif;overflow:hidden}
+#game{position:fixed;inset:0}canvas{display:block}
+.panel{position:fixed;background:#14231fdd;border:1px solid #456052;border-radius:12px;padding:12px;backdrop-filter:blur(8px)}
+#top{top:14px;left:14px;right:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+#brand{font-weight:800;letter-spacing:2px;color:#b9e6a8}.stat{color:#d6e6d5}.stat b{color:#fff}
+#tools{left:14px;top:90px;width:176px;display:grid;gap:7px}
+button{background:#29463a;color:#f2f7ed;border:1px solid #587765;border-radius:8px;padding:9px;cursor:pointer;text-align:left}
+button:hover,button.active{background:#507b57;border-color:#a9d39b}
+#info{right:14px;top:90px;width:205px;line-height:1.5}
+#bottom{bottom:14px;left:14px;right:14px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+small{color:#b8c9bb}#toast{position:fixed;left:50%;top:78px;transform:translateX(-50%);background:#263e32;padding:9px 14px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+@media(max-width:650px){#tools{top:auto;bottom:86px;width:145px;grid-template-columns:1fr 1fr}#info{top:auto;bottom:86px;width:150px;right:10px}#top{font-size:12px}#bottom{font-size:11px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="game"></div>
+<div id="top" class="panel"><span id="brand">EVERWORLD</span><span class="stat">나무 <b id="wood">30</b></span><span class="stat">돌 <b id="stone">20</b></span><span class="stat">식량 <b id="food">25</b></span><span class="stat">주민 <b id="people">5</b></span><span class="stat">행복도 <b id="happy">75</b>%</span><span class="stat" id="season">봄 · 1일</span></div>
+<div id="tools" class="panel">
+<button data-build="select" class="active">선택 / 둘러보기</button><button data-build="house">집 · 나무 5</button><button data-build="farm">농장 · 나무 4</button><button data-build="lumber">벌목장 · 나무 6</button><button data-build="quarry">채석장 · 나무 6</button><button data-build="market">시장 · 나무 8</button><button data-build="tree">나무 심기 · 식량 2</button><button data-build="remove">철거</button>
+</div>
+<div id="info" class="panel"><b id="tileTitle">EVERWORLD에 오신 것을 환영합니다</b><p id="tileInfo">땅을 선택하거나 건물을 지어 작은 마을을 키워 보세요.</p><small>마우스 드래그: 회전 · 휠: 확대/축소 · 우클릭 드래그: 이동</small></div>
+<div id="bottom" class="panel"><span id="message">자연과 함께 성장하는 문명을 만들어 보세요.</span><span><button id="save">저장</button> <button id="load">불러오기</button> <button id="next">하루 진행</button></span></div>
+<div id="toast"></div>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const W=14,H=12,scene=new THREE.Scene();scene.background=new THREE.Color(0x9fc4b0);scene.fog=new THREE.Fog(0x9fc4b0,28,65);
+const camera=new THREE.OrthographicCamera(-13,13,11,-11,.1,100);camera.position.set(18,22,18);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.querySelector('#game').appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.maxPolarAngle=Math.PI/2.15;controls.minZoom=.55;controls.maxZoom=2.2;
+scene.add(new THREE.HemisphereLight(0xe8fff1,0x52634a,2));const sun=new THREE.DirectionalLight(0xfff0d4,2.2);sun.position.set(-10,20,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
+const ground=new THREE.Group();scene.add(ground);const tiles=[],objects=new Map(),materials={plain:0x8eae72,forest:0x668b5b,water:0x559eae,hill:0x9aa875,mountain:0x858b84,sand:0xc9b77c};
+const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.9});
+const geo=new THREE.BoxGeometry(.98,.18,.98);
+function key(x,z){return x+','+z}
+function tileAt(x,z){return tiles.find(t=>t.x===x&&t.z===z)}
+function addTree(parent,x,y,z,scale=1){let trunk=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,.48,6),mat(0x75533a));trunk.position.set(x,y+.24,z);trunk.castShadow=true;parent.add(trunk);for(let i=0;i<3;i++){let crown=new THREE.Mesh(new THREE.ConeGeometry(.38-i*.055,.7,7),mat([0x376b45,0x477c4b,0x5a8b50][i]));crown.position.set(x,y+.62+i*.25,z);crown.castShadow=true;parent.add(crown)}}
+function makeBuilding(type,x,z){
+const g=new THREE.Group();const base=new THREE.Mesh(new THREE.BoxGeometry(.65,.45,.65),mat(type==='farm'?0x9b7946:type==='market'?0xc18b50:type==='house'?0xd0b58a:type==='lumber'?0x94724f:0x888b83));base.position.y=.32;base.castShadow=true;g.add(base);
+const roof=new THREE.Mesh(new THREE.ConeGeometry(.58,.48,4),mat(type==='house'?0x9d5944:type==='market'?0x567c62:0x8d6845));roof.position.y=.78;roof.rotation.y=Math.PI/4;roof.castShadow=true;g.add(roof);
+if(type==='farm'){for(let i=0;i<3;i++){let row=new THREE.Mesh(new THREE.BoxGeometry(.12,.08,.75),mat(0x526f37));row.position.set(-.2+i*.2,.13,.0);g.add(row)}}
+if(type==='market'){let awning=new THREE.Mesh(new THREE.BoxGeometry(.85,.12,.4),mat(0xd9c58b));awning.position.set(0,.62,.48);g.add(awning)}
+g.position.set(x-W/2+.5,0,z-H/2+.5);scene.add(g);objects.set(key(x,z),{type,mesh:g});
+}
+const rand=(x,z)=>Math.abs(Math.sin(x*127.1+z*311.7)*43758.5453)%1;
+for(let z=0;z<H;z++)for(let x=0;x<W;x++){
+let edge=x===0||z===0||x===W-1||z===H-1;let r=rand(x,z);let type=edge&&r<.5?'water':r<.13?'mountain':r<.28?'forest':r<.39?'hill':r<.45?'sand':'plain';
+let m=new THREE.Mesh(geo,mat(materials[type]));m.position.set(x-W/2+.5,-.09,z-H/2+.5);m.receiveShadow=true;m.userData={x,z,type};ground.add(m);tiles.push({x,z,type,mesh:m});
+if(type==='forest'&&r>.31)addTree(scene,x-W/2+.5,.02,z-H/2+.5,.8+rand(z,x)*.4);
+if(type==='mountain'){let rock=new THREE.Mesh(new THREE.ConeGeometry(.55,.8,5),mat(0x777f78));rock.position.set(x-W/2+.5,.35,z-H/2+.5);rock.castShadow=true;scene.add(rock)}
+}
+const state={wood:30,stone:20,food:25,people:5,happy:75,day:1,season:0,build:'select'};
+let selected=null;
+function toast(s){let el=document.querySelector('#toast');el.textContent=s;el.style.opacity=1;setTimeout(()=>el.style.opacity=0,1600)}
+function update(){for(let k of ['wood','stone','food','people','happy'])document.querySelector('#'+k).textContent=state[k];document.querySelector('#season').textContent=['봄','여름','가을','겨울'][state.season]+' · '+state.day+'일'}
+function selectTile(t){selected=t;document.querySelector('#tileTitle').textContent=t.type==='water'?'물가':t.type==='forest'?'숲':t.type==='mountain'?'산':'평지';let b=objects.get(key(t.x,t.z));document.querySelector('#tileInfo').textContent=b?({house:'주거 공간. 주민이 머무는 집입니다.',farm:'식량을 생산하는 농장입니다.',lumber:'나무를 얻는 벌목장입니다.',quarry:'돌을 얻는 채석장입니다.',market:'마을의 교류와 활력을 돕는 시장입니다.'}[b.type]):'비어 있는 땅입니다. 왼쪽에서 건설할 대상을 고르세요.'}
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.button!==0)return;mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);let hits=ray.intersectObjects(ground.children);if(!hits.length)return;let t=hits[0].object.userData;let tile=tileAt(t.x,t.z);if(!tile)return;selectTile(tile);let type=state.build;if(type==='select')return;if(type==='remove'){let b=objects.get(key(t.x,t.z));if(b){scene.remove(b.mesh);objects.delete(key(t.x,t.z));toast('건물을 철거했습니다.')}return}if(tile.type==='water'||tile.type==='mountain'||objects.has(key(t.x,t.z))){toast('이 땅에는 건설할 수 없습니다.');return}
+let costs={house:{wood:5},farm:{wood:4},lumber:{wood:6},quarry:{wood:6},market:{wood:8},tree:{food:2}}[type];for(let k in costs)if(state[k]<costs[k]){toast('자원이 부족합니다.');return}for(let k in costs)state[k]-=costs[k];if(type==='tree')addTree(scene,t.x-W/2+.5,.02,t.z-H/2+.5,1);else makeBuilding(type,t.x,t.z);toast('건설 완료!');update()});
+document.querySelectorAll('[data-build]').forEach(b=>b.onclick=()=>{state.build=b.dataset.build;document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x===b));toast(b.textContent+' 선택')});
+function advance(){state.day++;let buildings=[...objects.values()];state.food+=buildings.filter(b=>b.type==='farm').length*3;state.wood+=buildings.filter(b=>b.type==='lumber').length*2;state.stone+=buildings.filter(b=>b.type==='quarry').length;state.food-=Math.ceil(state.people*.4);if(state.food<0){state.food=0;state.happy=Math.max(10,state.happy-5)}else state.happy=Math.min(100,state.happy+1);if(state.day>30){state.day=1;state.season=(state.season+1)%4}if(buildings.filter(b=>b.type==='house').length&&state.food>5&&state.people<30&&state.day%5===0)state.people++;update();toast('하루가 지났습니다.')}
+document.querySelector('#next').onclick=advance;
+function snapshot(){return {state,buildings:[...objects.entries()].map(([k,v])=>[k,v.type])}}
+document.querySelector('#save').onclick=()=>{localStorage.setItem('everworld-save',JSON.stringify(snapshot()));toast('이 기기에 저장했습니다.')};
+document.querySelector('#load').onclick=()=>{let s=localStorage.getItem('everworld-save');if(!s){toast('저장된 기록이 없습니다.');return}let d=JSON.parse(s);Object.assign(state,d.state);for(let b of objects.values())scene.remove(b.mesh);objects.clear();for(let [k,type] of d.buildings){let [x,z]=k.split(',').map(Number);makeBuilding(type,x,z)}update();toast('저장 기록을 불러왔습니다.')};
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);let a=innerWidth/innerHeight;camera.left=-11*a;camera.right=11*a;camera.top=11;camera.bottom=-11;camera.updateProjectionMatrix()});
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();update();
+</script></body></html>
