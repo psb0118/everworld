@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVERWORLD — 문명이 살아가는 세계</title>
+<style>
+:root{--bg:#101a18;--panel:#192723;--panel2:#20332c;--line:#30483e;--text:#e8f0e8;--muted:#9aafa1;--gold:#e3c27a;--green:#83bd91;--blue:#86b8c8;--red:#d88d7d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#243a31 0,#101a18 45%);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#263b32;color:var(--text);border-radius:10px;padding:9px 12px;transition:.15s}
+button:hover{background:#345344;border-color:#62836e}button:disabled{opacity:.35;cursor:not-allowed}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 22px;border-bottom:1px solid #30483e;background:#111d19e8;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:12px}.sigil{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#6e9b76,#315a47);font-size:22px}
+.brand h1{font-size:17px;letter-spacing:3px;margin:0}.brand small{color:var(--muted);font-size:11px;letter-spacing:1px}
+.resources{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.res{background:#1c2d27;border:1px solid var(--line);border-radius:10px;padding:7px 11px;min-width:84px}.res span{display:block;color:var(--muted);font-size:10px}.res b{font-size:15px}
+.wrap{max-width:1450px;margin:auto;padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px}
+.hero{grid-column:1/-1;display:flex;justify-content:space-between;align-items:end;gap:12px}.eyebrow{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase}.hero h2{font-size:clamp(23px,3vw,34px);margin:5px 0}.hero p{margin:0;color:var(--muted);font-size:13px}
+.stats{display:flex;gap:8px;flex-wrap:wrap}.pill{border:1px solid var(--line);background:#192923;border-radius:99px;padding:7px 11px;color:var(--muted);font-size:12px}.pill strong{color:var(--text)}
+.panel{background:linear-gradient(160deg,#1c2b25,#17231f);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 12px 35px #0002}.panelhead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.panelhead h3{font-size:14px;margin:0}.panelbody{padding:15px}
+.maparea{padding:14px;background:#14211c}.map{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px;max-width:100%}.tile{aspect-ratio:1.1;border-radius:8px;border:1px solid #ffffff12;display:grid;place-items:center;position:relative;font-size:clamp(13px,2vw,22px);min-width:0;overflow:hidden;user-select:none}.tile.forest{background:linear-gradient(145deg,#315c43,#244635)}.tile.plain{background:linear-gradient(145deg,#8a9c62,#657b4b)}.tile.water{background:linear-gradient(145deg,#477f8a,#315f70)}.tile.mountain{background:linear-gradient(145deg,#777c76,#555e58)}.tile.hill{background:linear-gradient(145deg,#788b59,#596e47)}.tile.sand{background:linear-gradient(145deg,#b69b69,#917c54)}.tile.selected{outline:3px solid var(--gold);outline-offset:1px;z-index:1}.tile:hover{filter:brightness(1.2)}.tile .building{position:absolute;bottom:2px;right:3px;font-size:11px;filter:drop-shadow(0 1px 2px #000)}
+.maplegend{display:flex;gap:12px;flex-wrap:wrap;padding:11px 3px 0;color:var(--muted);font-size:11px}.legenddot{display:inline-flex;align-items:center;gap:5px}
+.side{display:flex;flex-direction:column;gap:14px}.metricgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.metric{background:#20332c;border:1px solid var(--line);border-radius:11px;padding:10px}.metric span{display:block;color:var(--muted);font-size:11px}.metric b{font-size:19px}.metric small{color:var(--muted);font-size:10px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.buildbtn{text-align:left;min-height:65px}.buildbtn strong{display:block;font-size:12px}.buildbtn small{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.info{color:var(--muted);font-size:12px;line-height:1.6}.selectedtitle{display:flex;align-items:center;gap:8px;font-weight:650;margin-bottom:5px}.log{display:flex;flex-direction:column;gap:9px;max-height:230px;overflow:auto}.event{border-left:2px solid #6e9b76;padding-left:10px;font-size:11px;color:var(--muted);line-height:1.5}.event b{color:var(--text);font-weight:600}
+.footer{grid-column:1/-1;text-align:center;color:#71877a;font-size:10px;padding:4px}
+.notice{padding:10px 12px;background:#26372e;border:1px solid #455e4d;border-radius:10px;color:#c5d6c8;font-size:11px;line-height:1.5}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#e3c27a;color:#1d281f;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:20}.toast.show{opacity:1}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.hero{align-items:start;flex-direction:column}.resources{justify-content:flex-start}}
+@media(max-width:560px){.top{align-items:flex-start;flex-direction:column}.resources{display:grid;grid-template-columns:repeat(3,1fr);width:100%}.res{min-width:0}.wrap{padding:12px}.side{display:flex}.map{gap:3px}.tile{border-radius:5px}.panelbody{padding:12px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><div class="sigil">🌿</div><div><h1>EVERWORLD</h1><small>A WORLD THAT GROWS WITH YOU</small></div></div>
+  <div class="resources">
+    <div class="res"><span>식량</span><b id="food">120</b></div>
+    <div class="res"><span>목재</span><b id="wood">90</b></div>
+    <div class="res"><span>석재</span><b id="stone">55</b></div>
+    <div class="res"><span>동전</span><b id="coin">35</b></div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <div><div class="eyebrow">THE FIRST SETTLEMENT · YEAR <span id="yearTop">1</span></div><h2 id="settlementName">새벽의 정착지</h2><p>작은 마을에서 시작해, 오래 살아남는 문명을 만들어 봐.</p></div>
+    <div class="stats"><div class="pill">계절 <strong id="season">봄</strong></div><div class="pill">인구 <strong id="populationTop">12</strong></div><div class="pill">진행 <strong id="tick">0</strong>일</div><button id="pauseBtn">Ⅱ 일시정지</button></div>
+  </section>
+  <section class="panel">
+    <div class="panelhead"><h3>세계 지도</h3><span class="info">타일을 선택하고 건물을 지어봐</span></div>
+    <div class="maparea"><div class="map" id="map"></div><div class="maplegend"><span class="legenddot">🌲 숲</span><span class="legenddot">🌾 평야</span><span class="legenddot">🌊 물</span><span class="legenddot">⛰️ 산</span><span class="legenddot">🏡 정착지</span></div></div>
+    <div class="panelbody"><div class="selectedtitle" id="tileTitle">🌾 평야 타일</div><div class="info" id="tileInfo">건설할 위치를 선택해.</div></div>
+  </section>
+  <aside class="side">
+    <section class="panel"><div class="panelhead"><h3>문명 현황</h3><span class="eyebrow">STATUS</span></div><div class="panelbody"><div class="metricgrid">
+      <div class="metric"><span>인구</span><b id="population">12</b><small>명</small></div>
+      <div class="metric"><span>행복도</span><b id="happiness">76</b><small>%</small></div>
+      <div class="metric"><span>식량 생산</span><b id="foodRate">+0</b><small>/일</small></div>
+      <div class="metric"><span>목재 생산</span><b id="woodRate">+0</b><small>/일</small></div>
+    </div></div></section>
+    <section class="panel"><div class="panelhead"><h3>건설 메뉴</h3><span class="eyebrow">BUILD</span></div><div class="panelbody"><div class="actions">
+      <button class="buildbtn" data-build="farm"><strong>🌾 농장</strong><small>목재 15 · 식량 생산</small></button>
+      <button class="buildbtn" data-build="lumber"><strong>🪓 벌목장</strong><small>석재 8 · 목재 생산</small></button>
+      <button class="buildbtn" data-build="quarry"><strong>⛏️ 채석장</strong><small>목재 12 · 석재 생산</small></button>
+      <button class="buildbtn" data-build="market"><strong>🏪 시장</strong><small>목재 20 · 석재 10</small></button>
+      <button class="buildbtn" data-build="house"><strong>🏠 주택</strong><small>목재 18 · 인구 수용</small></button>
+      <button class="buildbtn" data-build="grove"><strong>🌳 숲 보전지</strong><small>동전 10 · 자연 회복</small></button>
+    </div><p class="info">건물은 선택한 타일에 지어져. 물과 산에는 일부 건물을 지을 수 없어.</p></div></section>
+    <section class="panel"><div class="panelhead"><h3>선택 타일</h3><span class="eyebrow">ACTION</span></div><div class="panelbody"><button id="clearBtn" style="width:100%">선택 타일 비우기</button><p class="info">건물은 철거할 수 있지만 자원은 돌려받지 않아.</p></div></section>
+    <section class="panel"><div class="panelhead"><h3>세계 연대기</h3><span class="eyebrow">CHRONICLE</span></div><div class="panelbody"><div class="log" id="log"></div></div></section>
+    <section class="panel"><div class="panelhead"><h3>세계 관리</h3></div><div class="panelbody"><div style="display:flex;gap:7px"><button id="saveBtn" style="flex:1">저장</button><button id="loadBtn" style="flex:1">불러오기</button><button id="resetBtn" style="flex:1">초기화</button></div><p class="info">현재 버전은 이 브라우저에 저장되는 싱글플레이 프로토타입이야.</p></div></section>
+  </aside>
+  <div class="footer">EVERWORLD PROTOTYPE · v0.1 · YOUR CIVILIZATION, YOUR STORY</div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+(()=>{
+const W=12,H=8, key='everworld.save.v1';
+const terrainNames={forest:'숲',plain:'평야',water:'물',mountain:'산',hill:'언덕',sand:'모래'};
+const icons={forest:'🌲',plain:'🌾',water:'🌊',mountain:'⛰️',hill:'🌿',sand:'🏜️'};
+const buildingNames={farm:'농장',lumber:'벌목장',quarry:'채석장',market:'시장',house:'주택',grove:'숲 보전지'};
+const buildingIcons={farm:'🌱',lumber:'🪓',quarry:'⛏️',market:'🏪',house:'🏠',grove:'🌳'};
+const costs={farm:{wood:15},lumber:{stone:8},quarry:{wood:12},market:{wood:20,stone:10},house:{wood:18},grove:{coin:10}};
+let state;
+function initial(){
+ const terrain=[
+ 'forest','forest','hill','plain','plain','forest','mountain','hill','forest','plain','forest','forest',
+ 'forest','plain','plain','plain','hill','forest','mountain','mountain','hill','plain','plain','forest',
+ 'hill','plain','forest','plain','plain','plain','hill','forest','forest','plain','hill','forest',
+ 'plain','plain','forest','forest','plain','plain','plain','hill','forest','forest','plain','plain',
+ 'water','water','plain','forest','hill','plain','plain','forest','plain','plain','forest','hill',
+ 'water','water','plain','plain','forest','forest','plain','plain','hill','forest','plain','plain',
+ 'water','water','hill','plain','plain','forest','forest','plain','plain','hill','forest','plain',
+ 'water','water','forest','forest','plain','plain','hill','forest','forest','plain','plain','forest'
+ ].flatMap(x=>x.split(','));
+ const tiles=terrain.map((t,i)=>({id:i,terrain:t,building:null}));
+ tiles[3*W+3].building='house'; tiles[3*W+4].building='market'; tiles[3*W+5].building='farm';
+ return {tiles,selected:3*W+3,food:120,wood:90,stone:55,coin:35,pop:12,happiness:76,day:0,paused:false,logs:[{day:0,text:'<b>새벽의 정착지</b>가 강가의 평야에 세워졌어.'}],name:'새벽의 정착지'};
+}
+state=initial();
+const $=id=>document.getElementById(id);
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1800)}
+function addLog(text){state.logs.unshift({day:state.day,text});state.logs=state.logs.slice(0,30);renderLog()}
+function renderMap(){
+ const el=$('map');el.innerHTML='';
+ state.tiles.forEach(tile=>{
+  const b=document.createElement('button');b.className='tile '+tile.terrain+(tile.id===state.selected?' selected':'');b.type='button';b.title=terrainNames[tile.terrain]+(tile.building?' · '+buildingNames[tile.building]:'');
+  b.textContent=icons[tile.terrain];if(tile.building){const s=document.createElement('span');s.className='building';s.textContent=buildingIcons[tile.building];b.appendChild(s)}
+  b.addEventListener('click',()=>{state.selected=tile.id;renderMap();renderTile()});el.appendChild(b);
+ });
+}
+function renderTile(){
+ const t=state.tiles[state.selected];if(!t)return;
+ $('tileTitle').textContent=icons[t.terrain]+' '+terrainNames[t.terrain]+(t.building?' · '+buildingIcons[t.building]+' '+buildingNames[t.building]:'');
+ $('tileInfo').textContent=t.building?'이 타일에는 '+buildingNames[t.building]+'이(가) 있어.':(t.terrain==='water'||t.terrain==='mountain'?'이 지형에는 건물을 지을 수 없어.':'건설 가능한 위치야. 원하는 건물을 선택해.');
+ document.querySelectorAll('[data-build]').forEach(btn=>{const type=btn.dataset.build;btn.disabled=!!t.building||!canBuild(type,t)});
+}
+function canBuild(type,t){if(!t||t.building||['water','mountain'].includes(t.terrain))return false;return Object.entries(costs[type]).every(([k,v])=>state[k]>=v)}
+function rates(){let f=0,w=0,s=0,c=0;state.tiles.forEach(t=>{if(t.building==='farm')f+=t.terrain==='plain'?7:5;if(t.building==='lumber')w+=t.terrain==='forest'?6:3;if(t.building==='quarry')s+=t.terrain==='hill'?4:3;if(t.building==='market')c+=2});return {f,w,s,c}}
+function render(){
+ $('food').textContent=Math.floor(state.food);$('wood').textContent=Math.floor(state.wood);$('stone').textContent=Math.floor(state.stone);$('coin').textContent=Math.floor(state.coin);
+ $('population').textContent=state.pop;$('populationTop').textContent=state.pop;$('happiness').textContent=state.happiness;
+ $('yearTop').textContent=Math.floor(state.day/36)+1;$('tick').textContent=state.day;$('season').textContent=['봄','여름','가을','겨울'][Math.floor((state.day%36)/9)];
+ const r=rates();$('foodRate').textContent=(r.f-Math.ceil(state.pop*.35)>=0?'+':'')+(r.f-Math.ceil(state.pop*.35));$('woodRate').textContent='+'+r.w;
+ renderMap();renderTile();renderLog();
+}
+function renderLog(){$('log').innerHTML='';state.logs.slice(0,12).forEach(e=>{const d=document.createElement('div');d.className='event';const b=document.createElement('b');b.textContent='제'+(Math.floor(e.day/36)+1)+'년 '+e.day+'일 · ';d.append(b);const span=document.createElement('span');span.innerHTML=e.text;$('log').appendChild(d);d.appendChild(span)})}
+function build(type){
+ const t=state.tiles[state.selected];if(!canBuild(type,t)){toast('이 위치에는 건설할 수 없거나 자원이 부족해.');return}
+ Object.entries(costs[type]).forEach(([k,v])=>state[k]-=v);t.building=type;addLog(buildingNames[type]+'을(를) 건설했어.');render();autosave();
+}
+document.querySelectorAll('[data-build]').forEach(b=>b.addEventListener('click',()=>build(b.dataset.build)));
+$('clearBtn').onclick=()=>{const t=state.tiles[state.selected];if(t.building){const removed=buildingNames[t.building];t.building=null;addLog(removed+'을(를) 철거했어.');render();autosave()}else toast('철거할 건물이 없어.')};
+function step(){
+ if(state.paused)return;state.day++;
+ const r=rates();const season=Math.floor((state.day%36)/9);
+ const seasonal=season===3?.75:season===1?1.15:1;
+ state.food+=r.f*seasonal-Math.ceil(state.pop*.35);
+ state.wood+=r.w;state.stone+=r.s;state.coin+=r.c;
+ if(state.food<0){state.food=0;state.happiness=Math.max(0,state.happiness-3);if(state.day%3===0)addLog('식량 부족으로 시민들의 행복도가 낮아졌어.')}
+ else if(state.food>30)state.happiness=Math.min(100,state.happiness+.2);
+ if(state.day%6===0){
+  const houses=state.tiles.filter(t=>t.building==='house').length;
+  const cap=10+houses*8;
+  if(state.food>45&&state.happiness>55&&state.pop<cap){state.pop++;addLog('새로운 가족이 정착지에 합류했어. 인구가 증가했어.')}
+  if(state.food<8&&state.pop>5){state.pop--;addLog('식량 부족으로 일부 주민이 다른 곳으로 떠났어.')}
+ }
+ if(state.day%9===0){const events=['따뜻한 봄비가 내려 농작물이 잘 자랐어.','여행 상인이 마을을 방문해 작은 소식을 전했어.','숲의 생명력이 회복되어 주변 환경이 푸르러졌어.','마을 사람들이 작은 축제를 열었어. 행복도가 조금 올랐어.'];const e=events[Math.floor(Math.random()*events.length)];if(e.includes('축제'))state.happiness=Math.min(100,state.happiness+4);addLog(e)}
+ if(state.day%36===0)addLog('새로운 해가 시작됐어. 정착지는 조금씩 성장하고 있어.');
+ render();if(state.day%3===0)autosave();
+}
+function autosave(){try{localStorage.setItem(key,JSON.stringify(state))}catch(e){}}
+$('pauseBtn').onclick=()=>{state.paused=!state.paused;$('pauseBtn').textContent=state.paused?'▶ 계속하기':'Ⅱ 일시정지'};
+$('saveBtn').onclick=()=>{autosave();toast('현재 문명을 저장했어.')};
+$('loadBtn').onclick=()=>{try{const s=JSON.parse(localStorage.getItem(key));if(!s)throw 0;state=s;render();toast('저장된 문명을 불러왔어.')}catch(e){toast('저장된 데이터가 없어.')}};
+$('resetBtn').onclick=()=>{if(confirm('현재 문명을 초기화할까? 저장하지 않은 진행 상황은 사라져.')){state=initial();render();autosave();toast('새로운 세계가 시작됐어.')}};
+setInterval(step,2200);
+render();autosave();
+})();
+</script>
+</body>
+</html>
