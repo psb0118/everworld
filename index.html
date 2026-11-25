@@ -44,7 +44,7 @@ h2{font-size:15px;margin:0 0 8px}h3{font-size:13px;margin:15px 0 6px}.muted{colo
  <h2 id="detailName">대륙을 살펴보세요</h2><div id="detailDesc" class="muted">지도 위 정착지를 클릭하면 상세 정보가 나타납니다.</div>
  <div id="detailBody"></div>
  <h3>문명에 영향을 주기</h3><div class="muted">명령은 자원을 즉시 만들지 않고, 해당 정착지의 발전 방향에 영향을 줍니다.</div>
- <div class="actions"><button id="policyFarm" disabled>농업 지원</button><button id="policyCulture" disabled>문화 후원</button><button id="policyTrade" disabled>교역로 제안</button></div>
+ <h3>주민 명단</h3><div id="residentRoster" class="muted">주민 정보가 여기에 표시됩니다.</div><div class="actions"><button id="policyFarm" disabled>농업 지원</button><button id="policyCulture" disabled>문화 후원</button><button id="policyTrade" disabled>교역로 제안</button></div>
 </aside>
 <div id="feed" class="panel"><b>세계 기록</b><div id="eventText">세 정착지가 대륙 곳곳에서 새로운 삶을 시작했습니다.</div></div>
 <footer id="bottom" class="panel">
@@ -88,6 +88,8 @@ const communities=[
 ];
 let selected=0,year=1,season=0,paused=true,speed=1,worldEvents=[];
 const residents=[], residentJobs=['농부','목수','채집가','운반꾼','농부','공예가','농부'];
+const residentNames=['가온','다온','하람','서우','이든','나린','시온','유나','도윤','소율','지후','아린','현우','라온','지민','은재','하윤','태오','수아','민준','예린','건우','채원','준서'];
+const personalities=['부지런함','호기심 많음','사교적','신중함','낙천적'];
 let lifeClock=0;
 function addResident(c,jobIndex){
  const p=worldPos(c),job=residentJobs[(jobIndex+c.id*2)%residentJobs.length];
@@ -99,14 +101,23 @@ function addResident(c,jobIndex){
  head.position.y=.53;head.castShadow=true;g.add(head);
  g.position.set(p.x+(Math.random()-.5)*1.2,.02,p.z+(Math.random()-.5)*1.2);
  scene.add(g);
- residents.push({mesh:g,community:c,job,home:{x:(Math.random()-.5)*1.8,z:(Math.random()-.5)*1.8},work:{x:job==='농부'?1.5:-1.35,z:job==='농부'?-1.35:.85},market:{x:2,z:.35},communitySpot:{x:-1.8,z:-.9},target:null,activity:'home',phase:Math.random(),speed:.55+Math.random()*.25});
+ const serial=residents.filter(r=>r.community===c).length;
+ const name=residentNames[(c.id*7+serial)%residentNames.length];
+ const personality=personalities[(c.id*3+serial)%personalities.length];
+ residents.push({mesh:g,community:c,job,name,personality,hunger:12+(serial*7)%22,energy:72+(serial*5)%25,social:45+(serial*9)%40,home:{x:(serial%3-1)*.62,z:(Math.floor(serial/3)%3-1)*.62},work:{x:job==='농부'?1.5:-1.35,z:job==='농부'?-1.35:.85},market:{x:2,z:.35},communitySpot:{x:-1.8,z:-.9},target:null,activity:'home',phase:(serial*.137+c.id*.071)%1,speed:.48+(serial%4)*.07});
 }
 communities.forEach(c=>{const count=c.pop;for(let i=0;i<count;i++)addResident(c,i);c.structureCount=4;});
 function updateResidents(dt){
  lifeClock=(lifeClock+dt*.075)%1;
  for(const r of residents){
   const phase=(lifeClock+r.phase)%1;
-  const activity=phase<.22?'home':phase<.66?'work':phase<.82?'market':'community';
+  // 주민의 직업에 따라 일과의 비중을 다르게 배분합니다.
+  const workEnd=r.job==='농부'?.68:r.job==='운반꾼'?.62:.58;
+  const marketEnd=workEnd+.16;
+  const activity=phase<.18?'home':phase<workEnd?'work':phase<marketEnd?'market':'community';
+  r.hunger=Math.min(100,r.hunger+dt*.08);
+  r.energy=Math.max(0,Math.min(100,r.energy+(activity==='home'?dt*.55:-dt*.08)));
+  r.social=Math.max(0,Math.min(100,r.social+(activity==='community'?dt*.35:-dt*.035)));
   if(activity!==r.activity){
    r.activity=activity;
    const dest=r[activity==='community'?'communitySpot':activity];
@@ -133,7 +144,9 @@ const pickRing=new THREE.Mesh(new THREE.TorusGeometry(2.9,.07,8,48),new THREE.Me
 function notify(text){document.querySelector('#eventText').textContent=text;document.querySelector('#status').textContent=text}
 function toast(text){const el=document.querySelector('#toast');el.textContent=text;el.style.opacity=1;setTimeout(()=>el.style.opacity=0,1500)}
 function era(c){if(c.tech>72&&c.pop>100)return'도시 문명';if(c.tech>48&&c.pop>65)return'성장하는 도시';if(c.tech>25||c.pop>42)return'농경 공동체';return'정착의 시작'}
-function renderDetails(){const c=communities[selected];document.querySelector('#detailName').textContent=c.name;document.querySelector('#detailDesc').textContent=c.desc;const rows=[['지역',c.region],['주민',residents.filter(r=>r.community===c).length+'명'],['생활 식량',Math.round(c.food)+' / 100'],['건강과 안정',Math.round(c.health)+' / 100'],['기술 지식',Math.round(c.tech)+' / 100'],['문화 활력',Math.round(c.culture)+' / 100'],['생활 번영',Math.round(c.prosperity)+' / 100'],['발전 경향',c.focus],['일하는 주민',residents.filter(r=>r.community===c&&r.activity==='work').length+'명'],['현재 단계',era(c)]];document.querySelector('#detailBody').innerHTML=rows.map((r,i)=>'<div class="statrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')+'<h3>공동체 상태</h3>'+[['식량 여유',c.food],['건강',c.health],['기술',c.tech],['문화',c.culture]].map(r=>'<div class="muted">'+r[0]+'</div><div class="bar"><i style="width:'+Math.max(0,Math.min(100,r[1]))+'%"></i></div>').join('');for(const id of ['policyFarm','policyCulture','policyTrade'])document.querySelector('#'+id).disabled=false;const p=worldPos(c);pickRing.position.set(p.x,.12,p.z);document.querySelector('#settlementCount').textContent=communities.length+'곳';document.querySelector('#population').textContent=Math.round(communities.reduce((a,b)=>a+b.pop,0))+'명';document.querySelector('#date').textContent=year+'년 '+['봄','여름','가을','겨울'][season];document.querySelector('#worldEra').textContent=communities.every(c=>c.tech>48)?'도시 문명 확산':communities.some(c=>c.tech>25)?'농경 사회 형성':'정착의 시작'}
+function renderDetails(){const c=communities[selected];document.querySelector('#detailName').textContent=c.name;document.querySelector('#detailDesc').textContent=c.desc;const members=residents.filter(r=>r.community===c);
+const rows=[['지역',c.region],['주민',members.length+'명'],['직업 구성',[...new Set(members.map(r=>r.job))].join(' · ')],['생활 식량',Math.round(c.food)+' / 100'],['건강과 안정',Math.round(c.health)+' / 100'],['기술 지식',Math.round(c.tech)+' / 100'],['문화 활력',Math.round(c.culture)+' / 100'],['생활 번영',Math.round(c.prosperity)+' / 100'],['발전 경향',c.focus],['일하는 주민',residents.filter(r=>r.community===c&&r.activity==='work').length+'명'],['현재 단계',era(c)]];document.querySelector('#detailBody').innerHTML=rows.map((r,i)=>'<div class="statrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')+'<h3>공동체 상태</h3>'+[['식량 여유',c.food],['건강',c.health],['기술',c.tech],['문화',c.culture]].map(r=>'<div class="muted">'+r[0]+'</div><div class="bar"><i style="width:'+Math.max(0,Math.min(100,r[1]))+'%"></i></div>').join('');
+document.querySelector('#residentRoster').innerHTML=members.map(r=>'<div class="statrow"><span><b>'+r.name+'</b> · '+r.job+'</span><span>'+r.personality+'</span></div>').join('');for(const id of ['policyFarm','policyCulture','policyTrade'])document.querySelector('#'+id).disabled=false;const p=worldPos(c);pickRing.position.set(p.x,.12,p.z);document.querySelector('#settlementCount').textContent=communities.length+'곳';document.querySelector('#population').textContent=Math.round(communities.reduce((a,b)=>a+b.pop,0))+'명';document.querySelector('#date').textContent=year+'년 '+['봄','여름','가을','겨울'][season];document.querySelector('#worldEra').textContent=communities.every(c=>c.tech>48)?'도시 문명 확산':communities.some(c=>c.tech>25)?'농경 사회 형성':'정착의 시작'}
 function chooseCommunity(id){selected=id;renderDetails();notify(communities[id].name+'을(를) 선택했습니다. 이 공동체의 변화와 발전을 관찰해 보세요.')}
 function support(kind){const c=communities[selected];if(kind==='farm'){c.agri+=1;c.focus='농업 중심';c.food=Math.min(100,c.food+5);notify(c.name+'에 농업 지식을 지원했습니다. 다음 계절부터 식량 생산 기반이 조금씩 좋아집니다.')}if(kind==='culture'){c.civic+=1;c.focus='문화와 교육';c.culture=Math.min(100,c.culture+8);notify(c.name+'의 문화 활동을 후원했습니다. 문화와 기술 교류가 활발해질 수 있습니다.')}if(kind==='trade'){c.trade+=1;c.focus='교역과 교류';c.prosperity=Math.min(100,c.prosperity+5);notify(c.name+' 주변의 교역 관계를 제안했습니다. 이웃 공동체와의 교류 효과를 관찰해 보세요.')}renderDetails();toast('발전 방향을 지원했습니다.')}
 document.querySelector('#policyFarm').onclick=()=>support('farm');document.querySelector('#policyCulture').onclick=()=>support('culture');document.querySelector('#policyTrade').onclick=()=>support('trade');
