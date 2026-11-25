@@ -23,7 +23,7 @@ small{color:#b8c9bb}#toast{position:fixed;left:50%;top:78px;transform:translateX
 <div id="game"></div>
 <div id="top" class="panel"><span id="brand">EVERWORLD</span><span class="stat">나무 <b id="wood">30</b></span><span class="stat">돌 <b id="stone">20</b></span><span class="stat">식량 <b id="food">25</b></span><span class="stat">주민 <b id="people">5</b></span><span class="stat">행복도 <b id="happy">75</b>%</span><span class="stat" id="season">봄 · 1일</span></div>
 <div id="tools" class="panel">
-<button data-build="select" class="active">선택 / 둘러보기</button><button data-build="house">집 · 나무 5</button><button data-build="farm">농장 · 나무 4</button><button data-build="lumber">벌목장 · 나무 6</button><button data-build="quarry">채석장 · 나무 6</button><button data-build="market">시장 · 나무 8</button><button data-build="tree">나무 심기 · 식량 2</button><button data-build="remove">철거</button>
+<button data-build="select" class="active">선택 / 둘러보기</button><button data-build="cancel">건설 취소 (Esc)</button><button data-build="house">집 · 나무 5</button><button data-build="farm">농장 · 나무 4</button><button data-build="lumber">벌목장 · 나무 6</button><button data-build="quarry">채석장 · 나무 6</button><button data-build="market">시장 · 나무 8</button><button data-build="tree">나무 심기 · 식량 2</button><button data-build="remove">철거</button>
 </div>
 <div id="info" class="panel"><b id="tileTitle">EVERWORLD에 오신 것을 환영합니다</b><p id="tileInfo">땅을 선택하거나 건물을 지어 작은 마을을 키워 보세요.</p><small>마우스 드래그: 회전 · 휠: 확대/축소 · 우클릭 드래그: 이동</small></div>
 <div id="bottom" class="panel"><span id="message">자연과 함께 성장하는 문명을 만들어 보세요.</span><span><button id="save">저장</button> <button id="load">불러오기</button> <button id="next">하루 진행</button></span></div>
@@ -58,14 +58,38 @@ if(type==='mountain'){let rock=new THREE.Mesh(new THREE.ConeGeometry(.55,.8,5),m
 }
 const state={wood:30,stone:20,food:25,people:5,happy:75,day:1,season:0,build:'select'};
 let selected=null;
+const selectionMark=new THREE.Mesh(new THREE.BoxGeometry(1.01,.035,1.01),new THREE.MeshBasicMaterial({color:0xffe58a,transparent:true,opacity:.8}));
+selectionMark.visible=false;selectionMark.position.y=.07;scene.add(selectionMark);
+const villagers=[];
+function makeVillager(i){
+ const g=new THREE.Group();
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.22,3,6),mat([0x4e78a5,0xb66d4e,0x8b6da8,0x638d58,0xc39b4c][i%5]));
+ body.position.y=.28;g.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.095,8,6),mat(0xe6bd91));head.position.y=.49;g.add(head);
+ const hat=new THREE.Mesh(new THREE.ConeGeometry(.12,.12,6),mat([0x9c5944,0x476b54,0x526b8c][i%3]));hat.position.y=.61;g.add(hat);
+ scene.add(g);villagers.push({mesh:g,phase:i*1.25,speed:.18+i*.012});
+}
+for(let i=0;i<5;i++)makeVillager(i);
+function moveVillagers(time){
+ villagers.forEach((v,i)=>{
+  const a=time*v.speed+v.phase;
+  v.mesh.position.set(Math.cos(a)*(2.0+(i%2)*.8),0,Math.sin(a)*(1.5+(i%3)*.35));
+  v.mesh.rotation.y=-a;
+ });
+}
 function toast(s){let el=document.querySelector('#toast');el.textContent=s;el.style.opacity=1;setTimeout(()=>el.style.opacity=0,1600)}
-function update(){for(let k of ['wood','stone','food','people','happy'])document.querySelector('#'+k).textContent=state[k];document.querySelector('#season').textContent=['봄','여름','가을','겨울'][state.season]+' · '+state.day+'일'}
-function selectTile(t){selected=t;document.querySelector('#tileTitle').textContent=t.type==='water'?'물가':t.type==='forest'?'숲':t.type==='mountain'?'산':'평지';let b=objects.get(key(t.x,t.z));document.querySelector('#tileInfo').textContent=b?({house:'주거 공간. 주민이 머무는 집입니다.',farm:'식량을 생산하는 농장입니다.',lumber:'나무를 얻는 벌목장입니다.',quarry:'돌을 얻는 채석장입니다.',market:'마을의 교류와 활력을 돕는 시장입니다.'}[b.type]):'비어 있는 땅입니다. 왼쪽에서 건설할 대상을 고르세요.'}
+function update(){
+ const seasonTint=[0xffffff,0xfff0d8,0xf4dcae,0xdce8f5][state.season];
+ tiles.forEach(t=>{t.mesh.material.color.setHex(materials[t.type]).multiply(new THREE.Color(seasonTint))});
+ for(let k of ['wood','stone','food','people','happy'])document.querySelector('#'+k).textContent=state[k];document.querySelector('#season').textContent=['봄','여름','가을','겨울'][state.season]+' · '+state.day+'일'}
+function selectTile(t){selected=t;selectionMark.position.set(t.x-W/2+.5,.07,t.z-H/2+.5);selectionMark.visible=true;document.querySelector('#tileTitle').textContent=t.type==='water'?'물가':t.type==='forest'?'숲':t.type==='mountain'?'산':'평지';let b=objects.get(key(t.x,t.z));document.querySelector('#tileInfo').textContent=b?({house:'주거 공간. 주민이 머무는 집입니다.',farm:'식량을 생산하는 농장입니다.',lumber:'나무를 얻는 벌목장입니다.',quarry:'돌을 얻는 채석장입니다.',market:'마을의 교류와 활력을 돕는 시장입니다.'}[b.type]):'비어 있는 땅입니다. 왼쪽에서 건설할 대상을 고르세요.'}
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
-renderer.domElement.addEventListener('pointerdown',e=>{if(e.button!==0)return;mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);let hits=ray.intersectObjects(ground.children);if(!hits.length)return;let t=hits[0].object.userData;let tile=tileAt(t.x,t.z);if(!tile)return;selectTile(tile);let type=state.build;if(type==='select')return;if(type==='remove'){let b=objects.get(key(t.x,t.z));if(b){scene.remove(b.mesh);objects.delete(key(t.x,t.z));toast('건물을 철거했습니다.')}return}if(tile.type==='water'||tile.type==='mountain'||objects.has(key(t.x,t.z))){toast('이 땅에는 건설할 수 없습니다.');return}
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('keydown',e=>{if(e.key==='Escape'){state.build='select';document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x.dataset.build==='select'));toast('건설 모드를 취소했습니다.')}});
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===2){state.build='select';document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x.dataset.build==='select'));toast('건설 모드를 취소했습니다.');return}if(e.button!==0)return;mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);let hits=ray.intersectObjects(ground.children);if(!hits.length)return;let t=hits[0].object.userData;let tile=tileAt(t.x,t.z);if(!tile)return;selectTile(tile);let type=state.build;if(type==='select')return;if(type==='remove'){let b=objects.get(key(t.x,t.z));if(b){scene.remove(b.mesh);objects.delete(key(t.x,t.z));toast('건물을 철거했습니다.')}return}if(tile.type==='water'||tile.type==='mountain'||objects.has(key(t.x,t.z))){toast('이 땅에는 건설할 수 없습니다.');return}
 let costs={house:{wood:5},farm:{wood:4},lumber:{wood:6},quarry:{wood:6},market:{wood:8},tree:{food:2}}[type];for(let k in costs)if(state[k]<costs[k]){toast('자원이 부족합니다.');return}for(let k in costs)state[k]-=costs[k];if(type==='tree')addTree(scene,t.x-W/2+.5,.02,t.z-H/2+.5,1);else makeBuilding(type,t.x,t.z);toast('건설 완료!');update()});
-document.querySelectorAll('[data-build]').forEach(b=>b.onclick=()=>{state.build=b.dataset.build;document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x===b));toast(b.textContent+' 선택')});
-function advance(){state.day++;let buildings=[...objects.values()];state.food+=buildings.filter(b=>b.type==='farm').length*3;state.wood+=buildings.filter(b=>b.type==='lumber').length*2;state.stone+=buildings.filter(b=>b.type==='quarry').length;state.food-=Math.ceil(state.people*.4);if(state.food<0){state.food=0;state.happy=Math.max(10,state.happy-5)}else state.happy=Math.min(100,state.happy+1);if(state.day>30){state.day=1;state.season=(state.season+1)%4}if(buildings.filter(b=>b.type==='house').length&&state.food>5&&state.people<30&&state.day%5===0)state.people++;update();toast('하루가 지났습니다.')}
+document.querySelectorAll('[data-build]').forEach(b=>b.onclick=()=>{if(b.dataset.build==='cancel'){state.build='select';document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x.dataset.build==='select'));toast('건설 모드를 취소했습니다.');return}state.build=b.dataset.build;document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x===b));toast(b.textContent+' 선택')});
+function advance(){state.day++;let buildings=[...objects.values()];const farmYield=state.season===3?1:state.season===1?4:3;state.food+=buildings.filter(b=>b.type==='farm').length*farmYield;state.wood+=buildings.filter(b=>b.type==='lumber').length*2;state.stone+=buildings.filter(b=>b.type==='quarry').length;state.food-=Math.ceil(state.people*.4);state.happy=Math.min(100,state.happy+buildings.filter(b=>b.type==='market').length*.5);if(state.food<0){state.food=0;state.happy=Math.max(10,state.happy-5)}else state.happy=Math.min(100,state.happy+1);if(state.day>30){state.day=1;state.season=(state.season+1)%4}if(buildings.filter(b=>b.type==='house').length&&state.food>5&&state.people<30&&state.day%5===0)state.people++;update();toast('하루가 지났습니다.')}
 document.querySelector('#next').onclick=advance;
 function snapshot(){return {state,buildings:[...objects.entries()].map(([k,v])=>[k,v.type])}}
 document.querySelector('#save').onclick=()=>{localStorage.setItem('everworld-save',JSON.stringify(snapshot()));toast('이 기기에 저장했습니다.')};
@@ -97,5 +121,5 @@ renderer.domElement.addEventListener('pointermove',e=>{
   placementPreview.visible=true;
 });
 
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();update();
+function animate(){requestAnimationFrame(animate);controls.update();moveVillagers(performance.now()/1000);renderer.render(scene,camera)}animate();update();
 </script></body></html>
