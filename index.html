@@ -82,11 +82,49 @@ const tileGeo=new THREE.BoxGeometry(.98,.18,.98);
 function tileType(x,z){const edge=x<1||z<1||x>W-2||z>H-2;const n=noise(x,z);const river= Math.abs(z-(15+4*Math.sin(x*.16)+1.1*Math.sin(x*.4)))<1.05&&x>2&&x<W-3;const lake=((x-9)**2/20+(z-22)**2/9<1)||((x-34)**2/18+(z-8)**2/12<1);if(edge||river||lake)return'water';if(n>1.65)return'mountain';if(n>.85)return'hill';if(Math.sin(x*.42)*Math.cos(z*.31)>.13)return'forest';if(n<-.9)return'sand';return'plain'}
 for(let z=0;z<H;z++)for(let x=0;x<W;x++){const type=tileType(x,z),mesh=new THREE.Mesh(tileGeo,mat(colors[type]));mesh.position.set(x-W/2+.5,-.1,z-H/2+.5);mesh.receiveShadow=true;mesh.userData={x,z,type};ground.add(mesh);tiles.push({x,z,type});tileMeshes.push(mesh);if(type==='forest'&&Math.sin(x*31+z*17)>.68)addTree(x-W/2+.5,z-H/2+.5,.7+Math.abs(Math.sin(x*9+z))*0.5);if(type==='mountain'){const rock=new THREE.Mesh(new THREE.ConeGeometry(.55,.95,5),mat(0x7c847c));rock.position.set(x-W/2+.5,.38,z-H/2+.5);rock.castShadow=true;scene.add(rock)}}
 const communities=[
-{id:0,name:'솔바람 마을',region:'북서쪽 숲과 평야',desc:'숲과 비옥한 땅을 바탕으로 농경과 목재 기술이 발달하기 쉬운 공동체입니다.',x:8,z:8,pop:28,food:72,health:76,tech:8,culture:10,prosperity:36,agri:1,civic:0,trade:0,color:0xd7a85b,focus:'농경',history:[]},
-{id:1,name:'강물 도시',region:'동쪽 큰 강 유역',desc:'강을 통한 이동과 교류에 유리합니다. 인구가 늘면 시장과 교역이 활발해질 수 있습니다.',x:32,z:8,pop:31,food:61,health:73,tech:12,culture:12,prosperity:40,agri:0,civic:0,trade:1,color:0x6d9eb0,focus:'교류',history:[]},
-{id:2,name:'돌언덕 정착지',region:'남쪽 언덕과 산기슭',desc:'돌과 고지대에 가까운 공동체입니다. 건축과 공예 지식이 축적되기 쉽습니다.',x:21,z:25,pop:25,food:66,health:78,tech:10,culture:8,prosperity:34,agri:0,civic:0,trade:0,color:0xa58ab5,focus:'건축',history:[]}
+{id:0,name:'솔바람 마을',region:'북서쪽 숲과 평야',desc:'숲과 비옥한 땅을 바탕으로 농경과 목재 기술이 발달하기 쉬운 공동체입니다.',x:8,z:8,pop:6,food:72,health:76,tech:8,culture:10,prosperity:36,agri:1,civic:0,trade:0,color:0xd7a85b,focus:'농경',history:[]},
+{id:1,name:'강물 도시',region:'동쪽 큰 강 유역',desc:'강을 통한 이동과 교류에 유리합니다. 인구가 늘면 시장과 교역이 활발해질 수 있습니다.',x:32,z:8,pop:7,food:61,health:73,tech:12,culture:12,prosperity:40,agri:0,civic:0,trade:1,color:0x6d9eb0,focus:'교류',history:[]},
+{id:2,name:'돌언덕 정착지',region:'남쪽 언덕과 산기슭',desc:'돌과 고지대에 가까운 공동체입니다. 건축과 공예 지식이 축적되기 쉽습니다.',x:21,z:25,pop:5,food:66,health:78,tech:10,culture:8,prosperity:34,agri:0,civic:0,trade:0,color:0xa58ab5,focus:'건축',history:[]}
 ];
 let selected=0,year=1,season=0,paused=true,speed=1,worldEvents=[];
+const residents=[], residentJobs=['농부','목수','채집가','운반꾼','농부','공예가','농부'];
+let lifeClock=0;
+function addResident(c,jobIndex){
+ const p=worldPos(c),job=residentJobs[(jobIndex+c.id*2)%residentJobs.length];
+ const bodyMat=mat([0x547b58,0x9a7654,0x6b8794,0x92745e][(jobIndex+c.id)%4]);
+ const g=new THREE.Group();
+ const body=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.34,7),bodyMat);
+ body.position.y=.28;body.castShadow=true;g.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.095,8,7),mat(0xe0bd91));
+ head.position.y=.53;head.castShadow=true;g.add(head);
+ g.position.set(p.x+(Math.random()-.5)*1.2,.02,p.z+(Math.random()-.5)*1.2);
+ scene.add(g);
+ residents.push({mesh:g,community:c,job,home:{x:(Math.random()-.5)*1.8,z:(Math.random()-.5)*1.8},work:{x:job==='농부'?1.5:-1.35,z:job==='농부'?-1.35:.85},market:{x:2,z:.35},communitySpot:{x:-1.8,z:-.9},target:null,activity:'home',phase:Math.random(),speed:.55+Math.random()*.25});
+}
+communities.forEach(c=>{const count=c.pop;for(let i=0;i<count;i++)addResident(c,i);c.structureCount=4;});
+function updateResidents(dt){
+ lifeClock=(lifeClock+dt*.075)%1;
+ for(const r of residents){
+  const phase=(lifeClock+r.phase)%1;
+  const activity=phase<.22?'home':phase<.66?'work':phase<.82?'market':'community';
+  if(activity!==r.activity){
+   r.activity=activity;
+   const dest=r[activity==='community'?'communitySpot':activity];
+   const p=worldPos(r.community);
+   r.target={x:p.x+dest.x,z:p.z+dest.z};
+  }
+  if(!r.target){const p=worldPos(r.community);r.target={x:p.x+r.home.x,z:p.z+r.home.z};}
+  const dx=r.target.x-r.mesh.position.x,dz=r.target.z-r.mesh.position.z;
+  const dist=Math.hypot(dx,dz);
+  if(dist>.06){
+   const step=Math.min(dist,dt*r.speed);
+   r.mesh.position.x+=dx/dist*step;r.mesh.position.z+=dz/dist*step;
+   r.mesh.rotation.y=Math.atan2(dx,dz);
+  }
+  r.mesh.position.y=.025+Math.abs(Math.sin(lifeClock*38+r.phase*8))*(dist>.06?.045:.008);
+ }
+}
+
 function worldPos(c){return{x:c.x-W/2+.5,z:c.z-H/2+.5}}
 function building(parent,x,z,color,kind){const g=new THREE.Group();const base=new THREE.Mesh(new THREE.BoxGeometry(.85,.55,.8),mat(color));base.position.y=.34;base.castShadow=true;g.add(base);const roof=new THREE.Mesh(new THREE.ConeGeometry(.72,.55,4),mat(0x98664c));roof.position.y=.82;roof.rotation.y=Math.PI/4;roof.castShadow=true;g.add(roof);if(kind==='civic'){const tower=new THREE.Mesh(new THREE.BoxGeometry(.18,.65,.18),mat(0xe0d2ad));tower.position.set(.23,.8,.1);g.add(tower)}g.position.set(x,0,z);parent.add(g);return g}
 function makeSettlement(c){const p=worldPos(c),g=new THREE.Group();const ring=new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.8,.1,32),new THREE.MeshStandardMaterial({color:c.color,transparent:true,opacity:.18,roughness:1}));ring.position.y=.01;g.add(ring);building(g,0,0,0xd5b58a,'home');building(g,1.25,.35,0xb98a5b,'home');building(g,-1.15,.55,0xd0c49a,'home');building(g,.2,-1.25,0x9eaa75,'farm');const marker=new THREE.Mesh(new THREE.SphereGeometry(.22,12,8),new THREE.MeshStandardMaterial({color:c.color,emissive:c.color,emissiveIntensity:.16}));marker.position.y=1.55;g.add(marker);g.position.set(p.x,0,p.z);g.userData.community=c.id;scene.add(g);settlementMeshes.push(g);c.mesh=g}
@@ -95,11 +133,21 @@ const pickRing=new THREE.Mesh(new THREE.TorusGeometry(2.9,.07,8,48),new THREE.Me
 function notify(text){document.querySelector('#eventText').textContent=text;document.querySelector('#status').textContent=text}
 function toast(text){const el=document.querySelector('#toast');el.textContent=text;el.style.opacity=1;setTimeout(()=>el.style.opacity=0,1500)}
 function era(c){if(c.tech>72&&c.pop>100)return'도시 문명';if(c.tech>48&&c.pop>65)return'성장하는 도시';if(c.tech>25||c.pop>42)return'농경 공동체';return'정착의 시작'}
-function renderDetails(){const c=communities[selected];document.querySelector('#detailName').textContent=c.name;document.querySelector('#detailDesc').textContent=c.desc;const rows=[['지역',c.region],['인구',Math.round(c.pop)+'명'],['생활 식량',Math.round(c.food)+' / 100'],['건강과 안정',Math.round(c.health)+' / 100'],['기술 지식',Math.round(c.tech)+' / 100'],['문화 활력',Math.round(c.culture)+' / 100'],['생활 번영',Math.round(c.prosperity)+' / 100'],['발전 경향',c.focus],['현재 단계',era(c)]];document.querySelector('#detailBody').innerHTML=rows.map((r,i)=>'<div class="statrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')+'<h3>공동체 상태</h3>'+[['식량 여유',c.food],['건강',c.health],['기술',c.tech],['문화',c.culture]].map(r=>'<div class="muted">'+r[0]+'</div><div class="bar"><i style="width:'+Math.max(0,Math.min(100,r[1]))+'%"></i></div>').join('');for(const id of ['policyFarm','policyCulture','policyTrade'])document.querySelector('#'+id).disabled=false;const p=worldPos(c);pickRing.position.set(p.x,.12,p.z);document.querySelector('#settlementCount').textContent=communities.length+'곳';document.querySelector('#population').textContent=Math.round(communities.reduce((a,b)=>a+b.pop,0))+'명';document.querySelector('#date').textContent=year+'년 '+['봄','여름','가을','겨울'][season];document.querySelector('#worldEra').textContent=communities.every(c=>c.tech>48)?'도시 문명 확산':communities.some(c=>c.tech>25)?'농경 사회 형성':'정착의 시작'}
+function renderDetails(){const c=communities[selected];document.querySelector('#detailName').textContent=c.name;document.querySelector('#detailDesc').textContent=c.desc;const rows=[['지역',c.region],['주민',residents.filter(r=>r.community===c).length+'명'],['생활 식량',Math.round(c.food)+' / 100'],['건강과 안정',Math.round(c.health)+' / 100'],['기술 지식',Math.round(c.tech)+' / 100'],['문화 활력',Math.round(c.culture)+' / 100'],['생활 번영',Math.round(c.prosperity)+' / 100'],['발전 경향',c.focus],['일하는 주민',residents.filter(r=>r.community===c&&r.activity==='work').length+'명'],['현재 단계',era(c)]];document.querySelector('#detailBody').innerHTML=rows.map((r,i)=>'<div class="statrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')+'<h3>공동체 상태</h3>'+[['식량 여유',c.food],['건강',c.health],['기술',c.tech],['문화',c.culture]].map(r=>'<div class="muted">'+r[0]+'</div><div class="bar"><i style="width:'+Math.max(0,Math.min(100,r[1]))+'%"></i></div>').join('');for(const id of ['policyFarm','policyCulture','policyTrade'])document.querySelector('#'+id).disabled=false;const p=worldPos(c);pickRing.position.set(p.x,.12,p.z);document.querySelector('#settlementCount').textContent=communities.length+'곳';document.querySelector('#population').textContent=Math.round(communities.reduce((a,b)=>a+b.pop,0))+'명';document.querySelector('#date').textContent=year+'년 '+['봄','여름','가을','겨울'][season];document.querySelector('#worldEra').textContent=communities.every(c=>c.tech>48)?'도시 문명 확산':communities.some(c=>c.tech>25)?'농경 사회 형성':'정착의 시작'}
 function chooseCommunity(id){selected=id;renderDetails();notify(communities[id].name+'을(를) 선택했습니다. 이 공동체의 변화와 발전을 관찰해 보세요.')}
 function support(kind){const c=communities[selected];if(kind==='farm'){c.agri+=1;c.focus='농업 중심';c.food=Math.min(100,c.food+5);notify(c.name+'에 농업 지식을 지원했습니다. 다음 계절부터 식량 생산 기반이 조금씩 좋아집니다.')}if(kind==='culture'){c.civic+=1;c.focus='문화와 교육';c.culture=Math.min(100,c.culture+8);notify(c.name+'의 문화 활동을 후원했습니다. 문화와 기술 교류가 활발해질 수 있습니다.')}if(kind==='trade'){c.trade+=1;c.focus='교역과 교류';c.prosperity=Math.min(100,c.prosperity+5);notify(c.name+' 주변의 교역 관계를 제안했습니다. 이웃 공동체와의 교류 효과를 관찰해 보세요.')}renderDetails();toast('발전 방향을 지원했습니다.')}
 document.querySelector('#policyFarm').onclick=()=>support('farm');document.querySelector('#policyCulture').onclick=()=>support('culture');document.querySelector('#policyTrade').onclick=()=>support('trade');
-function advanceYear(){year++;season=(season+1)%4;communities.forEach((c,i)=>{const seasonFood=[1.5,2.6,2.1,.55][season];const production=seasonFood+c.agri*.75+(i===0?.25:0);const demand=c.pop*.035;c.food=Math.max(0,Math.min(100,c.food+production-demand));const foodFactor=c.food>48?1:c.food>25?.45:-.8;c.health=Math.max(8,Math.min(100,c.health+foodFactor*.8+(c.civic*.12)));c.tech=Math.min(100,c.tech+.55+c.civic*.22+c.trade*.12+(c.pop>45?.12:0));c.culture=Math.min(100,c.culture+.35+c.civic*.32+c.trade*.2);c.prosperity=Math.max(0,Math.min(100,c.prosperity+(c.food>40?.45:-.7)+c.trade*.12));if(c.food>55&&c.health>55&&c.pop<180)c.pop+=Math.max(.2,c.pop*.004);else if(c.food<12)c.pop=Math.max(8,c.pop*.985);if(year%5===0){const e=c.food<20?'식량 부족을 겪고 있습니다':c.tech>60?'새로운 기술과 건축 지식이 퍼지고 있습니다':c.culture>45?'축제와 공예가 활발해지고 있습니다':'생활 방식을 조금씩 바꾸고 있습니다';c.history.push(year+'년: '+e)}});
+function advanceYear(){year++;season=(season+1)%4;communities.forEach((c,i)=>{const seasonFood=[1.5,2.6,2.1,.55][season];const workers=residents.filter(r=>r.community===c&&r.job==='농부').length;const production=seasonFood*.45+workers*.42+c.agri*.55+(i===0?.2:0);const demand=residents.filter(r=>r.community===c).length*.19;c.food=Math.max(0,Math.min(100,c.food+production-demand));const foodFactor=c.food>48?1:c.food>25?.45:-.8;c.health=Math.max(8,Math.min(100,c.health+foodFactor*.8+(c.civic*.12)));c.tech=Math.min(100,c.tech+.55+c.civic*.22+c.trade*.12+(c.pop>45?.12:0));c.culture=Math.min(100,c.culture+.35+c.civic*.32+c.trade*.2);c.prosperity=Math.max(0,Math.min(100,c.prosperity+(c.food>40?.45:-.7)+c.trade*.12));
+if(c.food>58&&c.health>62&&year%3===0){
+ const count=residents.filter(r=>r.community===c).length;
+ if(count<Math.max(8,Math.floor(c.food/3))&&count<45){addResident(c,count);c.pop=count+1;}
+}
+if(c.food<12)c.health=Math.max(8,c.health-1.2);
+const headcount=residents.filter(r=>r.community===c).length;c.pop=headcount;
+if(headcount>=9&&c.structureCount<5){building(c.mesh,2,-1.25,0xc9b58e,'home');c.structureCount++;}
+if(headcount>=13&&c.structureCount<6){building(c.mesh,-2,-1.25,0x9eaa75,'farm');c.structureCount++;}
+if(headcount>=18&&c.structureCount<7){building(c.mesh,0,2,0xb88a62,'civic');c.structureCount++;}
+if(year%5===0){const e=c.food<20?'식량 부족을 겪고 있습니다':c.tech>60?'새로운 기술과 건축 지식이 퍼지고 있습니다':c.culture>45?'축제와 공예가 활발해지고 있습니다':'생활 방식을 조금씩 바꾸고 있습니다';c.history.push(year+'년: '+e)}});
 const total=communities.reduce((a,c)=>a+c.pop,0);let message='제'+year+'년, 세 공동체는 각자의 환경에 맞춰 살아가고 있습니다.';if(year%5===0){const c=communities.reduce((a,b)=>a.tech>b.tech?a:b);message=year+'년의 기록: '+c.name+'에서 '+(c.tech>50?'도시 생활과 기술이 발전하고 있습니다.':'새로운 생활 방식이 자리 잡고 있습니다.')}if(communities.some(c=>c.food<15))message+=' 일부 지역에서 식량 사정이 나빠지고 있습니다.';notify(message);renderDetails()}
 function raycast(e){const r=renderer.domElement.getBoundingClientRect();mouse.x=((e.clientX-r.left)/r.width)*2-1;mouse.y=-((e.clientY-r.top)/r.height)*2+1;ray.setFromCamera(mouse,camera);const hits=ray.intersectObjects(settlementMeshes,true);if(hits.length){let o=hits[0].object;while(o&&!Number.isInteger(o.userData.community))o=o.parent;if(o)chooseCommunity(o.userData.community)}}
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===0)raycast(e)});renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
@@ -108,7 +156,7 @@ document.querySelector('#pause').onclick=()=>{paused=!paused;document.querySelec
 document.querySelector('#speed').onclick=()=>{speed=speed===1?2:speed===2?4:1;document.querySelector('#speed').textContent='속도 ×'+speed};
 document.querySelector('#step').onclick=()=>{advanceYear();toast('1년이 흘렀습니다.')};
 document.querySelector('#reset').onclick=()=>{if(confirm('현재 세계를 초기 상태로 되돌릴까요?'))location.reload()};
-let last=performance.now(),acc=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.1);last=now;if(!paused){acc+=dt*speed;if(acc>8){acc=0;advanceYear()}}controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
+let last=performance.now(),acc=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.1);last=now;if(!paused){updateResidents(dt*speed);acc+=dt*speed;if(acc>8){acc=0;advanceYear()}}controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);const a=innerWidth/innerHeight;camera.left=-18*a;camera.right=18*a;camera.top=18;camera.bottom=-18;camera.updateProjectionMatrix()});
 renderDetails();
 </script></body></html>
