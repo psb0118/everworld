@@ -71,5 +71,31 @@ function snapshot(){return {state,buildings:[...objects.entries()].map(([k,v])=>
 document.querySelector('#save').onclick=()=>{localStorage.setItem('everworld-save',JSON.stringify(snapshot()));toast('이 기기에 저장했습니다.')};
 document.querySelector('#load').onclick=()=>{let s=localStorage.getItem('everworld-save');if(!s){toast('저장된 기록이 없습니다.');return}let d=JSON.parse(s);Object.assign(state,d.state);for(let b of objects.values())scene.remove(b.mesh);objects.clear();for(let [k,type] of d.buildings){let [x,z]=k.split(',').map(Number);makeBuilding(type,x,z)}update();toast('저장 기록을 불러왔습니다.')};
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);let a=innerWidth/innerHeight;camera.left=-11*a;camera.right=11*a;camera.top=11;camera.bottom=-11;camera.updateProjectionMatrix()});
+
+// 건설 위치 미리보기: 포인터가 올라간 타일을 반투명 테두리로 표시
+const placementPreview = new THREE.Mesh(
+  new THREE.BoxGeometry(.94,.035,.94),
+  new THREE.MeshBasicMaterial({color:0x9eea86,transparent:true,opacity:.48,depthWrite:false})
+);
+placementPreview.visible=false;
+placementPreview.position.y=.035;
+scene.add(placementPreview);
+renderer.domElement.addEventListener('pointermove',e=>{
+  const rect=renderer.domElement.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  ray.setFromCamera(mouse,camera);
+  const hits=ray.intersectObjects(ground.children);
+  if(!hits.length){placementPreview.visible=false;return}
+  const data=hits[0].object.userData;
+  const tile=tileAt(data.x,data.z);
+  if(!tile){placementPreview.visible=false;return}
+  const occupied=objects.has(key(data.x,data.z));
+  const blocked=tile.type==='water'||tile.type==='mountain'||occupied;
+  placementPreview.position.set(data.x-W/2+.5,.035,data.z-H/2+.5);
+  placementPreview.material.color.set(state.build==='select'?0xe8f0df:(blocked?0xe77c70:0x9eea86));
+  placementPreview.visible=true;
+});
+
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();update();
 </script></body></html>
