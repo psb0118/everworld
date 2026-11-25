@@ -125,6 +125,7 @@ function updateResidents(dt){
    r.target={x:p.x+dest.x,z:p.z+dest.z};
   }
   if(r.job==='운반꾼'){
+   if(activity!=='work')r.routeNode=null;
    if(r.cargo)r.cargo.visible=activity==='work';
    if(activity==='work'){
     const node=Math.floor(((lifeClock+r.phase)*2)%2);
