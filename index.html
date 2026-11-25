@@ -2,144 +2,113 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EVERWORLD — 대륙 문명 시뮬레이션</title>
+<title>EVERWORLD — 살아가는 대륙</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#101b19;color:#edf4e9;font:14px system-ui,sans-serif;overflow:hidden}
-#game{position:fixed;inset:0}canvas{display:block}
-.panel{position:fixed;background:#14231fdd;border:1px solid #456052;border-radius:12px;padding:12px;backdrop-filter:blur(8px)}
-#top{top:14px;left:14px;right:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-#brand{font-weight:800;letter-spacing:2px;color:#b9e6a8}.stat{color:#d6e6d5}.stat b{color:#fff}
-#tools{left:14px;top:90px;width:176px;display:grid;gap:7px}
-button{background:#29463a;color:#f2f7ed;border:1px solid #587765;border-radius:8px;padding:9px;cursor:pointer;text-align:left}
-button:hover,button.active{background:#507b57;border-color:#a9d39b}
-#info{right:14px;top:90px;width:205px;line-height:1.5}
-#bottom{bottom:14px;left:14px;right:14px;display:flex;justify-content:space-between;gap:12px;align-items:center}
-small{color:#b8c9bb}#toast{position:fixed;left:50%;top:78px;transform:translateX(-50%);background:#263e32;padding:9px 14px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
-@media(max-width:650px){#tools{top:auto;bottom:86px;width:145px;grid-template-columns:1fr 1fr}#info{top:auto;bottom:86px;width:150px;right:10px}#top{font-size:12px}#bottom{font-size:11px}}
+:root{--ink:#20352b;--muted:#64776b;--paper:#f5f3e9;--line:#d9dfd2;--green:#426c4e;--gold:#c18a42}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,"Noto Sans KR",sans-serif;color:var(--ink);background:#dce8d7}button{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);padding:9px 12px}button:hover{border-color:var(--green);background:#f3f8ef}button.primary{background:var(--green);border-color:var(--green);color:#fff}button:disabled{opacity:.45;cursor:not-allowed}
+#world{position:fixed;inset:0}canvas{display:block}
+.panel{background:#fbfaf4ed;border:1px solid #d5ddcf;border-radius:13px;box-shadow:0 8px 28px #243d2918;backdrop-filter:blur(9px)}
+#top{position:fixed;top:14px;left:14px;right:14px;padding:11px 15px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{font-weight:900;letter-spacing:2px;color:#31583c}.tag{font-size:11px;color:#68796d;background:#e9efe4;border-radius:20px;padding:4px 8px}.metric{color:#66766b;font-size:12px}.metric b{display:block;color:#263c2e;font-size:16px}
+#left{position:fixed;left:14px;top:92px;width:218px;padding:14px}#right{position:fixed;right:14px;top:92px;width:270px;padding:14px;max-height:calc(100vh - 180px);overflow:auto}
+h2{font-size:15px;margin:0 0 8px}h3{font-size:13px;margin:15px 0 6px}.muted{color:var(--muted);font-size:12px}.legend{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12px}.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.statrow{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #e8ebe3;font-size:12px}.statrow b{font-weight:700}.bar{height:7px;border-radius:9px;background:#e4e9df;overflow:hidden;margin:5px 0 9px}.bar i{display:block;height:100%;background:#6f9b68;border-radius:9px}
+#bottom{position:fixed;bottom:14px;left:14px;right:14px;padding:10px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#feed{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);width:min(520px,calc(100vw - 30px));padding:10px 14px;font-size:12px;pointer-events:none}
+#feed b{color:#31583c}#toast{position:fixed;top:82px;left:50%;transform:translateX(-50%);padding:8px 14px;background:#263e32;color:#fff;border-radius:20px;opacity:0;transition:.2s;pointer-events:none}
+#intro{position:fixed;inset:0;background:#14231f99;display:grid;place-items:center;padding:18px;z-index:5}
+#intro .card{width:min(530px,100%);padding:24px;background:#fbfaf4;border-radius:18px;box-shadow:0 20px 70px #10201855}
+#intro h1{font-size:26px;margin:0 0 8px;letter-spacing:1px}#intro p{color:#5c6d61}#intro ol{padding-left:20px;color:#334b3b}#intro li{margin:7px 0}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.pill{font-size:11px;padding:3px 7px;border-radius:20px;background:#eaf0e6;color:#4b6650}
+@media(max-width:760px){#top{gap:9px;padding:9px;top:7px;left:7px;right:7px}.brand{font-size:12px}.metric b{font-size:13px}#left{left:7px;top:auto;bottom:90px;width:150px;padding:10px}#right{right:7px;top:112px;width:178px;max-height:calc(100vh - 220px);padding:10px}#bottom{left:7px;right:7px;bottom:7px}#feed{bottom:75px;width:calc(100vw - 18px)}button{padding:7px 8px;font-size:12px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 </head>
 <body>
-<div id="game"></div>
-<div id="top" class="panel"><span id="brand">EVERWORLD · 대륙 문명</span><span class="stat">정착지 <b id="settlements">3</b></span><span class="stat">시대 <b id="era">개척 시대</b></span><span class="stat">나무 <b id="wood">30</b></span><span class="stat">돌 <b id="stone">20</b></span><span class="stat">식량 <b id="food">25</b></span><span class="stat">주민 <b id="people">5</b></span><span class="stat">행복도 <b id="happy">75</b>%</span><span class="stat" id="season">봄 · 1일</span></div>
-<div id="tools" class="panel">
-<button data-build="select" class="active">선택 / 둘러보기</button><button data-build="cancel">건설 취소 (Esc)</button><button data-build="house">집 · 나무 5</button><button data-build="farm">농장 · 나무 4</button><button data-build="lumber">벌목장 · 나무 6</button><button data-build="quarry">채석장 · 나무 6</button><button data-build="market">시장 · 나무 8</button><button data-build="tree">나무 심기 · 식량 2</button><button data-build="remove">철거</button>
+<div id="world"></div>
+<header id="top" class="panel">
+ <span class="brand">EVERWORLD</span><span class="tag">살아가는 대륙 · 관찰형 문명 시뮬레이션</span>
+ <span class="metric">세계 날짜<b id="date">1년 봄</b></span><span class="metric">정착지<b id="settlementCount">3곳</b></span><span class="metric">전체 인구<b id="population">84명</b></span><span class="metric">문명 단계<b id="worldEra">정착의 시작</b></span>
+</header>
+<aside id="left" class="panel">
+ <h2>세계 지도</h2><div class="muted">마을을 선택하면 그곳의 삶과 발전을 볼 수 있어요.</div>
+ <h3>지도 범례</h3>
+ <div class="legend"><i class="dot" style="background:#e1b96e"></i>정착지 중심</div>
+ <div class="legend"><i class="dot" style="background:#4f8c68"></i>숲과 자연</div>
+ <div class="legend"><i class="dot" style="background:#579eaf"></i>강과 호수</div>
+ <div class="legend"><i class="dot" style="background:#9c9d92"></i>산과 언덕</div>
+ <h3>관찰 안내</h3><p class="muted">시간을 흘려보내며 인구, 식량 사정, 기술과 문화가 어떻게 변하는지 지켜보세요. 자원을 직접 클릭해 채집할 필요는 없습니다.</p>
+ <div class="actions"><button id="showGuide">도움말 다시 보기</button></div>
+</aside>
+<aside id="right" class="panel">
+ <h2 id="detailName">대륙을 살펴보세요</h2><div id="detailDesc" class="muted">지도 위 정착지를 클릭하면 상세 정보가 나타납니다.</div>
+ <div id="detailBody"></div>
+ <h3>문명에 영향을 주기</h3><div class="muted">명령은 자원을 즉시 만들지 않고, 해당 정착지의 발전 방향에 영향을 줍니다.</div>
+ <div class="actions"><button id="policyFarm" disabled>농업 지원</button><button id="policyCulture" disabled>문화 후원</button><button id="policyTrade" disabled>교역로 제안</button></div>
+</aside>
+<div id="feed" class="panel"><b>세계 기록</b><div id="eventText">세 정착지가 대륙 곳곳에서 새로운 삶을 시작했습니다.</div></div>
+<footer id="bottom" class="panel">
+ <span class="muted" id="status">세계는 자율적으로 움직입니다. 정착지를 선택해 살펴보세요.</span>
+ <span class="actions" style="margin:0"><button id="pause">일시정지</button><button id="speed">속도 ×1</button><button id="step" class="primary">1년 흘려보내기</button><button id="reset">새 세계</button></span>
+</footer>
+<div id="toast"></div>
+<div id="intro">
+ <div class="card">
+  <span class="pill">처음 오셨나요?</span><h1>EVERWORLD에 오신 것을 환영합니다</h1>
+  <p>이곳은 자원을 빠르게 모으는 게임이 아닙니다. 넓은 대륙에서 여러 공동체가 살아가고, 각자의 환경과 선택에 따라 서로 다른 문명을 만들어 가는 세계입니다.</p>
+  <ol><li><b>정착지를 클릭</b>해 주민과 생활 상태를 살펴보세요.</li><li><b>시간을 흘려보내면</b> 식량, 인구, 기술, 문화가 스스로 변합니다.</li><li><b>농업·문화·교역 지원</b>으로 공동체의 발전 방향에 영향을 줄 수 있습니다.</li><li>정답은 하나가 아닙니다. 세 공동체가 어떻게 달라지는지 관찰해 보세요.</li></ol>
+  <p class="muted">현재는 게임의 기본 흐름을 확인하는 초기 재설계 버전입니다. 일부 시스템은 아직 단순화되어 있습니다.</p>
+  <button class="primary" id="start">세계 둘러보기</button>
+ </div>
 </div>
-<div id="info" class="panel"><b id="tileTitle">EVERWORLD에 오신 것을 환영합니다</b><p id="tileInfo">땅을 선택하거나 건물을 지어 작은 마을을 키워 보세요.</p><small>마우스 드래그: 회전 · 휠: 확대/축소 · 우클릭 드래그: 이동</small></div>
-<div id="bottom" class="panel"><span id="message">자연과 함께 성장하는 문명을 만들어 보세요.</span><span><button id="save">저장</button> <button id="load">불러오기</button> <button id="next">하루 진행</button></span></div>
 <div id="toast"></div>
 <script type="module">
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-const W=36,H=28,scene=new THREE.Scene();scene.background=new THREE.Color(0x9fc4b0);scene.fog=new THREE.Fog(0x9fc4b0,55,125);
-const camera=new THREE.OrthographicCamera(-25,25,19,-19,.1,180);camera.position.set(30,38,30);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.querySelector('#game').appendChild(renderer.domElement);
-const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.maxPolarAngle=Math.PI/2.15;controls.minZoom=.55;controls.maxZoom=2.2;
-scene.add(new THREE.HemisphereLight(0xe8fff1,0x52634a,2));const sun=new THREE.DirectionalLight(0xfff0d4,2.2);sun.position.set(-10,20,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
-const ground=new THREE.Group();scene.add(ground);const tiles=[],objects=new Map(),materials={plain:0x8eae72,forest:0x668b5b,water:0x559eae,hill:0x9aa875,mountain:0x858b84,sand:0xc9b77c};
-const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.9});
-const geo=new THREE.BoxGeometry(.98,.18,.98);
-function key(x,z){return x+','+z}
-function tileAt(x,z){return tiles.find(t=>t.x===x&&t.z===z)}
-function addTree(parent,x,y,z,scale=1){let trunk=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,.48,6),mat(0x75533a));trunk.position.set(x,y+.24,z);trunk.castShadow=true;parent.add(trunk);for(let i=0;i<3;i++){let crown=new THREE.Mesh(new THREE.ConeGeometry(.38-i*.055,.7,7),mat([0x376b45,0x477c4b,0x5a8b50][i]));crown.position.set(x,y+.62+i*.25,z);crown.castShadow=true;parent.add(crown)}}
-function makeBuilding(type,x,z){
-const g=new THREE.Group();const base=new THREE.Mesh(new THREE.BoxGeometry(.65,.45,.65),mat(type==='farm'?0x9b7946:type==='market'?0xc18b50:type==='house'?0xd0b58a:type==='lumber'?0x94724f:0x888b83));base.position.y=.32;base.castShadow=true;g.add(base);
-const roof=new THREE.Mesh(new THREE.ConeGeometry(.58,.48,4),mat(type==='house'?0x9d5944:type==='market'?0x567c62:0x8d6845));roof.position.y=.78;roof.rotation.y=Math.PI/4;roof.castShadow=true;g.add(roof);
-if(type==='farm'){for(let i=0;i<3;i++){let row=new THREE.Mesh(new THREE.BoxGeometry(.12,.08,.75),mat(0x526f37));row.position.set(-.2+i*.2,.13,.0);g.add(row)}}
-if(type==='market'){let awning=new THREE.Mesh(new THREE.BoxGeometry(.85,.12,.4),mat(0xd9c58b));awning.position.set(0,.62,.48);g.add(awning)}
-g.position.set(x-W/2+.5,0,z-H/2+.5);scene.add(g);objects.set(key(x,z),{type,mesh:g});
-}
-const rand=(x,z)=>Math.abs(Math.sin(x*127.1+z*311.7)*43758.5453)%1;
-const smoothNoise=(x,z)=>Math.sin(x*.21)+Math.cos(z*.19)+.55*Math.sin((x+z)*.13)+.35*Math.cos((x-z)*.17);
-for(let z=0;z<H;z++)for(let x=0;x<W;x++){
- const edge=x<1||z<1||x>W-2||z>H-2,n=smoothNoise(x,z);
- const riverZ=13+4*Math.sin(x*.19)+1.4*Math.sin(x*.43);
- const river=Math.abs(z-riverZ)<1.05&&x>2&&x<W-3;
- const lake=((x-7)**2/13+(z-19)**2/8<1)||((x-29)**2/17+(z-8)**2/10<1);
- let type=edge||river||lake?'water':n>1.55?'mountain':n>.78?'hill':(Math.sin(x*.48)*Math.cos(z*.37)>.05?'forest':n<-.95?'sand':'plain');
- const m=new THREE.Mesh(geo,mat(materials[type]));
- m.position.set(x-W/2+.5,-.09,z-H/2+.5);m.receiveShadow=true;m.userData={x,z,type};ground.add(m);tiles.push({x,z,type,mesh:m});
- if(type==='forest'&&rand(x,z)>.18)addTree(scene,x-W/2+.5,.02,z-H/2+.5,.8+rand(z,x)*.45);
- if(type==='mountain'){const rock=new THREE.Mesh(new THREE.ConeGeometry(.58,.9,5),mat(0x777f78));rock.position.set(x-W/2+.5,.38,z-H/2+.5);rock.castShadow=true;scene.add(rock)}
-}
-
-const state={wood:90,stone:55,food:100,people:24,happy:82,day:1,season:0,totalDays:1,build:'select'};
-let selected=null;
-const selectionMark=new THREE.Mesh(new THREE.BoxGeometry(1.01,.035,1.01),new THREE.MeshBasicMaterial({color:0xffe58a,transparent:true,opacity:.8}));
-selectionMark.visible=false;selectionMark.position.y=.07;scene.add(selectionMark);
-const villagers=[];
-const villageCenters=[];
-function makeVillager(i){
- const g=new THREE.Group();
- const body=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.22,3,6),mat([0x4e78a5,0xb66d4e,0x8b6da8,0x638d58,0xc39b4c][i%5]));
- body.position.y=.28;g.add(body);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.095,8,6),mat(0xe6bd91));head.position.y=.49;g.add(head);
- const hat=new THREE.Mesh(new THREE.ConeGeometry(.12,.12,6),mat([0x9c5944,0x476b54,0x526b8c][i%3]));hat.position.y=.61;g.add(hat);
- scene.add(g);villagers.push({mesh:g,phase:i*1.25,speed:.18+i*.012,center:villageCenters[i%Math.max(1,villageCenters.length)]||{x:0,z:0}});
-}
-// 대륙 곳곳에 세 개의 초기 정착지를 배치한다.
-const anchors=[{x:7,z:7},{x:27,z:7},{x:18,z:21}];
-anchors.forEach(anchor=>{
- const candidates=tiles.filter(t=>t.type==='plain'||t.type==='hill').sort((p,q)=>((p.x-anchor.x)**2+(p.z-anchor.z)**2)-((q.x-anchor.x)**2+(q.z-anchor.z)**2));
- const center=candidates[0];if(!center)return;
- villageCenters.push({x:center.x-W/2+.5,z:center.z-H/2+.5});
- makeBuilding('house',center.x,center.z);
- const farm=candidates.find(t=>Math.abs(t.x-center.x)+Math.abs(t.z-center.z)>1&&!objects.has(key(t.x,t.z)));
- if(farm)makeBuilding('farm',farm.x,farm.z);
- const market=candidates.find(t=>Math.abs(t.x-center.x)+Math.abs(t.z-center.z)>2&&!objects.has(key(t.x,t.z)));
- if(market)makeBuilding('market',market.x,market.z);
-});
-for(let i=0;i<24;i++)makeVillager(i);
-function moveVillagers(time){
- villagers.forEach((v,i)=>{
-  const a=time*v.speed+v.phase;
-  v.mesh.position.set(v.center.x+Math.cos(a)*(1.8+(i%2)*.8),0,v.center.z+Math.sin(a)*(1.4+(i%3)*.35));
-  v.mesh.rotation.y=-a;
- });
-}
-function toast(s){let el=document.querySelector('#toast');el.textContent=s;el.style.opacity=1;setTimeout(()=>el.style.opacity=0,1600)}
-function update(){
- const seasonTint=[0xffffff,0xfff0d8,0xf4dcae,0xdce8f5][state.season];
- tiles.forEach(t=>{t.mesh.material.color.setHex(materials[t.type]).multiply(new THREE.Color(seasonTint))});
- for(let k of ['wood','stone','food','people','happy'])document.querySelector('#'+k).textContent=Math.floor(state[k]);document.querySelector('#era').textContent=state.totalDays<90?'개척 시대':state.totalDays<240?'농경 시대':state.totalDays<480?'도시 시대':'문명 시대';document.querySelector('#season').textContent=['봄','여름','가을','겨울'][state.season]+' · '+state.day+'일'}
-function selectTile(t){selected=t;selectionMark.position.set(t.x-W/2+.5,.07,t.z-H/2+.5);selectionMark.visible=true;document.querySelector('#tileTitle').textContent=t.type==='water'?'물가':t.type==='forest'?'숲':t.type==='mountain'?'산':'평지';let b=objects.get(key(t.x,t.z));document.querySelector('#tileInfo').textContent=b?({house:'주거 공간. 주민이 머무는 집입니다.',farm:'식량을 생산하는 농장입니다.',lumber:'나무를 얻는 벌목장입니다.',quarry:'돌을 얻는 채석장입니다.',market:'마을의 교류와 활력을 돕는 시장입니다.'}[b.type]):'비어 있는 땅입니다. 왼쪽에서 건설할 대상을 고르세요.'}
-const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
-renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
-addEventListener('keydown',e=>{if(e.key==='Escape'){state.build='select';document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x.dataset.build==='select'));toast('건설 모드를 취소했습니다.')}});
-renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===2){state.build='select';document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x.dataset.build==='select'));toast('건설 모드를 취소했습니다.');return}if(e.button!==0)return;mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);let hits=ray.intersectObjects(ground.children);if(!hits.length)return;let t=hits[0].object.userData;let tile=tileAt(t.x,t.z);if(!tile)return;selectTile(tile);let type=state.build;if(type==='select')return;if(type==='remove'){let b=objects.get(key(t.x,t.z));if(b){scene.remove(b.mesh);objects.delete(key(t.x,t.z));toast('건물을 철거했습니다.')}return}if(tile.type==='water'||tile.type==='mountain'||objects.has(key(t.x,t.z))){toast('이 땅에는 건설할 수 없습니다.');return}
-let costs={house:{wood:5},farm:{wood:4},lumber:{wood:6},quarry:{wood:6},market:{wood:8},tree:{food:2}}[type];for(let k in costs)if(state[k]<costs[k]){toast('자원이 부족합니다.');return}for(let k in costs)state[k]-=costs[k];if(type==='tree')addTree(scene,t.x-W/2+.5,.02,t.z-H/2+.5,1);else makeBuilding(type,t.x,t.z);toast('건설 완료!');update()});
-document.querySelectorAll('[data-build]').forEach(b=>b.onclick=()=>{if(b.dataset.build==='cancel'){state.build='select';document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x.dataset.build==='select'));toast('건설 모드를 취소했습니다.');return}state.build=b.dataset.build;document.querySelectorAll('[data-build]').forEach(x=>x.classList.toggle('active',x===b));toast(b.textContent+' 선택')});
-function advance(){state.day++;state.totalDays++;let buildings=[...objects.values()];const farmYield=state.season===3?1:state.season===1?4:3;state.food+=buildings.filter(b=>b.type==='farm').length*farmYield;state.wood+=buildings.filter(b=>b.type==='lumber').length*2;state.stone+=buildings.filter(b=>b.type==='quarry').length;state.food-=Math.ceil(state.people*.4);state.happy=Math.min(100,state.happy+buildings.filter(b=>b.type==='market').length*.5);if(state.food<0){state.food=0;state.happy=Math.max(10,state.happy-5)}else state.happy=Math.min(100,state.happy+1);if(state.day>30){state.day=1;state.season=(state.season+1)%4}if(buildings.filter(b=>b.type==='house').length&&state.food>5&&state.people<120&&state.day%5===0)state.people++;update();toast('하루가 지났습니다.')}
-document.querySelector('#next').onclick=advance;
-function snapshot(){return {state,buildings:[...objects.entries()].map(([k,v])=>[k,v.type])}}
-document.querySelector('#save').onclick=()=>{localStorage.setItem('everworld-save',JSON.stringify(snapshot()));toast('이 기기에 저장했습니다.')};
-document.querySelector('#load').onclick=()=>{let s=localStorage.getItem('everworld-save');if(!s){toast('저장된 기록이 없습니다.');return}let d=JSON.parse(s);Object.assign(state,d.state);for(let b of objects.values())scene.remove(b.mesh);objects.clear();for(let [k,type] of d.buildings){let [x,z]=k.split(',').map(Number);makeBuilding(type,x,z)}update();toast('저장 기록을 불러왔습니다.')};
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);let a=innerWidth/innerHeight;camera.left=-19*a;camera.right=19*a;camera.top=19;camera.bottom=-19;camera.updateProjectionMatrix()});
-
-// 건설 위치 미리보기: 포인터가 올라간 타일을 반투명 테두리로 표시
-const placementPreview = new THREE.Mesh(
-  new THREE.BoxGeometry(.94,.035,.94),
-  new THREE.MeshBasicMaterial({color:0x9eea86,transparent:true,opacity:.48,depthWrite:false})
-);
-placementPreview.visible=false;
-placementPreview.position.y=.035;
-scene.add(placementPreview);
-renderer.domElement.addEventListener('pointermove',e=>{
-  const rect=renderer.domElement.getBoundingClientRect();
-  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
-  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
-  ray.setFromCamera(mouse,camera);
-  const hits=ray.intersectObjects(ground.children);
-  if(!hits.length){placementPreview.visible=false;return}
-  const data=hits[0].object.userData;
-  const tile=tileAt(data.x,data.z);
-  if(!tile){placementPreview.visible=false;return}
-  const occupied=objects.has(key(data.x,data.z));
-  const blocked=tile.type==='water'||tile.type==='mountain'||occupied;
-  placementPreview.position.set(data.x-W/2+.5,.035,data.z-H/2+.5);
-  placementPreview.material.color.set(state.build==='select'?0xe8f0df:(blocked?0xe77c70:0x9eea86));
-  placementPreview.visible=true;
-});
-
-function animate(){requestAnimationFrame(animate);controls.update();moveVillagers(performance.now()/1000);renderer.render(scene,camera)}animate();update();
+const mount=document.querySelector('#world');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xb8d2c1);scene.fog=new THREE.Fog(0xb8d2c1,48,105);
+const camera=new THREE.OrthographicCamera(-24,24,18,-18,.1,160);camera.position.set(28,34,28);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;mount.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,0,0);controls.enableDamping=true;controls.maxPolarAngle=Math.PI/2.18;controls.minZoom=.55;controls.maxZoom=2.2;
+scene.add(new THREE.HemisphereLight(0xf1fff4,0x5d7155,2));const sun=new THREE.DirectionalLight(0xfff0d5,2);sun.position.set(-18,30,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
+const W=42,H=32,tiles=[],tileMeshes=[],settlementMeshes=[],ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+const mat=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:.94});
+const colors={plain:0x91b77c,forest:0x628b61,water:0x579eaf,hill:0xa6ad82,mountain:0x898f89,sand:0xcbb985};
+const ground=new THREE.Group();scene.add(ground);
+const noise=(x,z)=>Math.sin(x*.17)+Math.cos(z*.21)+.45*Math.sin((x+z)*.12)+.3*Math.cos((x-z)*.16);
+const key=(x,z)=>x+','+z;
+function addTree(x,z,s=1){const g=new THREE.Group();const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,.42,6),mat(0x75543a));trunk.position.y=.21;g.add(trunk);for(let j=0;j<3;j++){const c=new THREE.Mesh(new THREE.ConeGeometry(.37-j*.05,.65,7),mat([0x356b48,0x477d4d,0x588a50][j]));c.position.y=.48+j*.23;g.add(c)}g.position.set(x,0,z);g.scale.setScalar(s);g.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(g)}
+const tileGeo=new THREE.BoxGeometry(.98,.18,.98);
+function tileType(x,z){const edge=x<1||z<1||x>W-2||z>H-2;const n=noise(x,z);const river= Math.abs(z-(15+4*Math.sin(x*.16)+1.1*Math.sin(x*.4)))<1.05&&x>2&&x<W-3;const lake=((x-9)**2/20+(z-22)**2/9<1)||((x-34)**2/18+(z-8)**2/12<1);if(edge||river||lake)return'water';if(n>1.65)return'mountain';if(n>.85)return'hill';if(Math.sin(x*.42)*Math.cos(z*.31)>.13)return'forest';if(n<-.9)return'sand';return'plain'}
+for(let z=0;z<H;z++)for(let x=0;x<W;x++){const type=tileType(x,z),mesh=new THREE.Mesh(tileGeo,mat(colors[type]));mesh.position.set(x-W/2+.5,-.1,z-H/2+.5);mesh.receiveShadow=true;mesh.userData={x,z,type};ground.add(mesh);tiles.push({x,z,type});tileMeshes.push(mesh);if(type==='forest'&&Math.sin(x*31+z*17)>.68)addTree(x-W/2+.5,z-H/2+.5,.7+Math.abs(Math.sin(x*9+z))*0.5);if(type==='mountain'){const rock=new THREE.Mesh(new THREE.ConeGeometry(.55,.95,5),mat(0x7c847c));rock.position.set(x-W/2+.5,.38,z-H/2+.5);rock.castShadow=true;scene.add(rock)}}
+const communities=[
+{id:0,name:'솔바람 마을',region:'북서쪽 숲과 평야',desc:'숲과 비옥한 땅을 바탕으로 농경과 목재 기술이 발달하기 쉬운 공동체입니다.',x:8,z:8,pop:28,food:72,health:76,tech:8,culture:10,prosperity:36,agri:1,civic:0,trade:0,color:0xd7a85b,focus:'농경',history:[]},
+{id:1,name:'강물 도시',region:'동쪽 큰 강 유역',desc:'강을 통한 이동과 교류에 유리합니다. 인구가 늘면 시장과 교역이 활발해질 수 있습니다.',x:32,z:8,pop:31,food:61,health:73,tech:12,culture:12,prosperity:40,agri:0,civic:0,trade:1,color:0x6d9eb0,focus:'교류',history:[]},
+{id:2,name:'돌언덕 정착지',region:'남쪽 언덕과 산기슭',desc:'돌과 고지대에 가까운 공동체입니다. 건축과 공예 지식이 축적되기 쉽습니다.',x:21,z:25,pop:25,food:66,health:78,tech:10,culture:8,prosperity:34,agri:0,civic:0,trade:0,color:0xa58ab5,focus:'건축',history:[]}
+];
+let selected=0,year=1,season=0,paused=true,speed=1,worldEvents=[];
+function worldPos(c){return{x:c.x-W/2+.5,z:c.z-H/2+.5}}
+function building(parent,x,z,color,kind){const g=new THREE.Group();const base=new THREE.Mesh(new THREE.BoxGeometry(.85,.55,.8),mat(color));base.position.y=.34;base.castShadow=true;g.add(base);const roof=new THREE.Mesh(new THREE.ConeGeometry(.72,.55,4),mat(0x98664c));roof.position.y=.82;roof.rotation.y=Math.PI/4;roof.castShadow=true;g.add(roof);if(kind==='civic'){const tower=new THREE.Mesh(new THREE.BoxGeometry(.18,.65,.18),mat(0xe0d2ad));tower.position.set(.23,.8,.1);g.add(tower)}g.position.set(x,0,z);parent.add(g);return g}
+function makeSettlement(c){const p=worldPos(c),g=new THREE.Group();const ring=new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.8,.1,32),new THREE.MeshStandardMaterial({color:c.color,transparent:true,opacity:.18,roughness:1}));ring.position.y=.01;g.add(ring);building(g,0,0,0xd5b58a,'home');building(g,1.25,.35,0xb98a5b,'home');building(g,-1.15,.55,0xd0c49a,'home');building(g,.2,-1.25,0x9eaa75,'farm');const marker=new THREE.Mesh(new THREE.SphereGeometry(.22,12,8),new THREE.MeshStandardMaterial({color:c.color,emissive:c.color,emissiveIntensity:.16}));marker.position.y=1.55;g.add(marker);g.position.set(p.x,0,p.z);g.userData.community=c.id;scene.add(g);settlementMeshes.push(g);c.mesh=g}
+communities.forEach(makeSettlement);
+const pickRing=new THREE.Mesh(new THREE.TorusGeometry(2.9,.07,8,48),new THREE.MeshBasicMaterial({color:0xffe29a}));pickRing.rotation.x=Math.PI/2;scene.add(pickRing);
+function notify(text){document.querySelector('#eventText').textContent=text;document.querySelector('#status').textContent=text}
+function toast(text){const el=document.querySelector('#toast');el.textContent=text;el.style.opacity=1;setTimeout(()=>el.style.opacity=0,1500)}
+function era(c){if(c.tech>72&&c.pop>100)return'도시 문명';if(c.tech>48&&c.pop>65)return'성장하는 도시';if(c.tech>25||c.pop>42)return'농경 공동체';return'정착의 시작'}
+function renderDetails(){const c=communities[selected];document.querySelector('#detailName').textContent=c.name;document.querySelector('#detailDesc').textContent=c.desc;const rows=[['지역',c.region],['인구',Math.round(c.pop)+'명'],['생활 식량',Math.round(c.food)+' / 100'],['건강과 안정',Math.round(c.health)+' / 100'],['기술 지식',Math.round(c.tech)+' / 100'],['문화 활력',Math.round(c.culture)+' / 100'],['생활 번영',Math.round(c.prosperity)+' / 100'],['발전 경향',c.focus],['현재 단계',era(c)]];document.querySelector('#detailBody').innerHTML=rows.map((r,i)=>'<div class="statrow"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')+'<h3>공동체 상태</h3>'+[['식량 여유',c.food],['건강',c.health],['기술',c.tech],['문화',c.culture]].map(r=>'<div class="muted">'+r[0]+'</div><div class="bar"><i style="width:'+Math.max(0,Math.min(100,r[1]))+'%"></i></div>').join('');for(const id of ['policyFarm','policyCulture','policyTrade'])document.querySelector('#'+id).disabled=false;const p=worldPos(c);pickRing.position.set(p.x,.12,p.z);document.querySelector('#settlementCount').textContent=communities.length+'곳';document.querySelector('#population').textContent=Math.round(communities.reduce((a,b)=>a+b.pop,0))+'명';document.querySelector('#date').textContent=year+'년 '+['봄','여름','가을','겨울'][season];document.querySelector('#worldEra').textContent=communities.every(c=>c.tech>48)?'도시 문명 확산':communities.some(c=>c.tech>25)?'농경 사회 형성':'정착의 시작'}
+function chooseCommunity(id){selected=id;renderDetails();notify(communities[id].name+'을(를) 선택했습니다. 이 공동체의 변화와 발전을 관찰해 보세요.')}
+function support(kind){const c=communities[selected];if(kind==='farm'){c.agri+=1;c.focus='농업 중심';c.food=Math.min(100,c.food+5);notify(c.name+'에 농업 지식을 지원했습니다. 다음 계절부터 식량 생산 기반이 조금씩 좋아집니다.')}if(kind==='culture'){c.civic+=1;c.focus='문화와 교육';c.culture=Math.min(100,c.culture+8);notify(c.name+'의 문화 활동을 후원했습니다. 문화와 기술 교류가 활발해질 수 있습니다.')}if(kind==='trade'){c.trade+=1;c.focus='교역과 교류';c.prosperity=Math.min(100,c.prosperity+5);notify(c.name+' 주변의 교역 관계를 제안했습니다. 이웃 공동체와의 교류 효과를 관찰해 보세요.')}renderDetails();toast('발전 방향을 지원했습니다.')}
+document.querySelector('#policyFarm').onclick=()=>support('farm');document.querySelector('#policyCulture').onclick=()=>support('culture');document.querySelector('#policyTrade').onclick=()=>support('trade');
+function advanceYear(){year++;season=(season+1)%4;communities.forEach((c,i)=>{const seasonFood=[1.5,2.6,2.1,.55][season];const production=seasonFood+c.agri*.75+(i===0?.25:0);const demand=c.pop*.035;c.food=Math.max(0,Math.min(100,c.food+production-demand));const foodFactor=c.food>48?1:c.food>25?.45:-.8;c.health=Math.max(8,Math.min(100,c.health+foodFactor*.8+(c.civic*.12)));c.tech=Math.min(100,c.tech+.55+c.civic*.22+c.trade*.12+(c.pop>45?.12:0));c.culture=Math.min(100,c.culture+.35+c.civic*.32+c.trade*.2);c.prosperity=Math.max(0,Math.min(100,c.prosperity+(c.food>40?.45:-.7)+c.trade*.12));if(c.food>55&&c.health>55&&c.pop<180)c.pop+=Math.max(.2,c.pop*.004);else if(c.food<12)c.pop=Math.max(8,c.pop*.985);if(year%5===0){const e=c.food<20?'식량 부족을 겪고 있습니다':c.tech>60?'새로운 기술과 건축 지식이 퍼지고 있습니다':c.culture>45?'축제와 공예가 활발해지고 있습니다':'생활 방식을 조금씩 바꾸고 있습니다';c.history.push(year+'년: '+e)}});
+const total=communities.reduce((a,c)=>a+c.pop,0);let message='제'+year+'년, 세 공동체는 각자의 환경에 맞춰 살아가고 있습니다.';if(year%5===0){const c=communities.reduce((a,b)=>a.tech>b.tech?a:b);message=year+'년의 기록: '+c.name+'에서 '+(c.tech>50?'도시 생활과 기술이 발전하고 있습니다.':'새로운 생활 방식이 자리 잡고 있습니다.')}if(communities.some(c=>c.food<15))message+=' 일부 지역에서 식량 사정이 나빠지고 있습니다.';notify(message);renderDetails()}
+function raycast(e){const r=renderer.domElement.getBoundingClientRect();mouse.x=((e.clientX-r.left)/r.width)*2-1;mouse.y=-((e.clientY-r.top)/r.height)*2+1;ray.setFromCamera(mouse,camera);const hits=ray.intersectObjects(settlementMeshes,true);if(hits.length){let o=hits[0].object;while(o&&!Number.isInteger(o.userData.community))o=o.parent;if(o)chooseCommunity(o.userData.community)}}
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===0)raycast(e)});renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+document.querySelector('#start').onclick=()=>document.querySelector('#intro').style.display='none';document.querySelector('#showGuide').onclick=()=>document.querySelector('#intro').style.display='grid';
+document.querySelector('#pause').onclick=()=>{paused=!paused;document.querySelector('#pause').textContent=paused?'계속 진행':'일시정지';toast(paused?'시간을 멈췄습니다.':'세계가 다시 움직입니다.')};
+document.querySelector('#speed').onclick=()=>{speed=speed===1?2:speed===2?4:1;document.querySelector('#speed').textContent='속도 ×'+speed};
+document.querySelector('#step').onclick=()=>{advanceYear();toast('1년이 흘렀습니다.')};
+document.querySelector('#reset').onclick=()=>{if(confirm('현재 세계를 초기 상태로 되돌릴까요?'))location.reload()};
+let last=performance.now(),acc=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.1);last=now;if(!paused){acc+=dt*speed;if(acc>8){acc=0;advanceYear()}}controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);const a=innerWidth/innerHeight;camera.left=-18*a;camera.right=18*a;camera.top=18;camera.bottom=-18;camera.updateProjectionMatrix()});
+renderDetails();
 </script></body></html>
